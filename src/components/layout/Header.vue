@@ -42,31 +42,59 @@
 
         <!-- User Menu -->
         <div class="relative">
-          <button 
+          <button
             @click="toggleUserMenu"
             class="flex items-center space-x-2 p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <span class="text-white text-sm font-medium">U</span>
+              <span class="text-white text-sm font-medium">
+                {{ userInitials }}
+              </span>
+            </div>
+            <div class="hidden sm:block text-left">
+              <p class="text-sm font-medium text-slate-900">{{ authStore.user?.name || 'Usuario' }}</p>
+              <p class="text-xs text-slate-500">{{ authStore.user?.email }}</p>
             </div>
             <PhCaretDown :size="16" />
           </button>
 
           <!-- User Dropdown -->
-          <div 
+          <div
             v-if="showUserMenu"
             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50"
           >
-            <a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
-              Mi Perfil
-            </a>
-            <a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
-              Configuración
-            </a>
+            <div class="px-4 py-2 border-b border-slate-200">
+              <p class="text-sm font-medium text-slate-900">{{ authStore.user?.name || 'Usuario' }}</p>
+              <p class="text-xs text-slate-500">{{ authStore.user?.email }}</p>
+            </div>
+            <router-link
+              to="/settings"
+              class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+              @click="showUserMenu = false"
+            >
+              <div class="flex items-center space-x-2">
+                <PhUser :size="16" />
+                <span>Mi Perfil</span>
+              </div>
+            </router-link>
+            <router-link
+              to="/settings"
+              class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+              @click="showUserMenu = false"
+            >
+              <div class="flex items-center space-x-2">
+                <PhGear :size="16" />
+                <span>Configuración</span>
+              </div>
+            </router-link>
             <hr class="my-1 border-slate-200">
-            <a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
-              Cerrar Sesión
-            </a>
+            <button
+              @click="handleLogout"
+              class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+            >
+              <PhSignOut :size="16" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
       </div>
@@ -76,14 +104,37 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { PhMagnifyingGlass, PhBell, PhCaretDown } from '@phosphor-icons/vue'
+import { useRouter } from 'vue-router'
+import {
+  PhMagnifyingGlass,
+  PhBell,
+  PhCaretDown,
+  PhUser,
+  PhGear,
+  PhSignOut
+} from '@phosphor-icons/vue'
 import { useNetworkStore } from '../../stores/network'
+import { useAuthStore } from '../../stores/auth'
 
+const router = useRouter()
 const networkStore = useNetworkStore()
+const authStore = useAuthStore()
 const searchQuery = ref('')
 const showUserMenu = ref(false)
 
 const networkStatus = computed(() => networkStore.networkStatus)
+
+const userInitials = computed(() => {
+  if (authStore.user?.name) {
+    return authStore.user.name
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+  return authStore.user?.email?.charAt(0).toUpperCase() || 'U'
+})
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
@@ -93,6 +144,11 @@ const closeUserMenu = (event: Event) => {
   if (!(event.target as Element).closest('.relative')) {
     showUserMenu.value = false
   }
+}
+
+const handleLogout = async () => {
+  showUserMenu.value = false
+  await authStore.logout(router)
 }
 
 onMounted(() => {
