@@ -1,15 +1,22 @@
 // API Types
 export interface RequestInformation {
   id: string;
-  firstName: string;
-  lastName: string;
+  clientName: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   company?: string;
   status: RequestStatus;
+  priority: 'low' | 'medium' | 'high';
+  subject: string;
+  description: string;
   createdAt: string;
   updatedAt: string;
-  notes?: RequestNote[];
+  assignedTo?: string;
+  tags: string[];
+  notes: RequestNote[];
+  amount?: number; // New field for sales amount
 }
 
 export interface RequestNote {
@@ -17,9 +24,22 @@ export interface RequestNote {
   content: string;
   createdAt: string;
   updatedAt: string;
+  author?: string;
 }
 
 export type RequestStatus = 'NEW' | 'IN_PROGRESS' | 'RECONTACT' | 'WON' | 'LOST' | 'CLOSE';
+
+// New dynamic status interface
+export interface StatusDefinition {
+  id: string;
+  name: string;
+  label: string;
+  color: string;
+  order: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface RequestSummary {
   total: number;
@@ -27,6 +47,9 @@ export interface RequestSummary {
   conversionRate: number;
   avgTimeToClose: number;
 }
+
+// Alias for compatibility
+export type RequestsSummary = RequestSummary;
 
 export interface ApiResponse<T> {
   data: T[];
@@ -48,14 +71,29 @@ export interface NetworkStatus {
   isReconnecting: boolean;
 }
 
-// Component Props
+// Component Props for Vue
 export interface KanbanColumnProps {
   status: RequestStatus;
   requests: RequestInformation[];
-  onStatusChange: (requestId: string, newStatus: RequestStatus) => void;
 }
 
 export interface RequestCardProps {
   request: RequestInformation;
-  onStatusChange: (requestId: string, newStatus: RequestStatus) => void;
+}
+
+// Vue specific types
+export interface DashboardMetric {
+  title: string;
+  value: string | number;
+  previousValue?: string | number;
+  trend: 'up' | 'down' | 'neutral';
+  trendValue: number;
+  icon: string;
+  color: 'default' | 'blue' | 'green' | 'red' | 'yellow';
+}
+
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  color?: string;
 }

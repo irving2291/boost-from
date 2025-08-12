@@ -1,11 +1,13 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Satoshi:wght@300;400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Schnauzer Pepper Color Palette */
 :root {
   --charcoal: #1F2937;
   --slate-dark: #374151;
-  --slate: #4B5563;
+  --slate: hsl(215, 14%, 34%);
   --slate-light: #6B7280;
   --silver: #9CA3AF;
   --platinum: #D1D5DB;

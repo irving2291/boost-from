@@ -1,3 +1,4 @@
-export { KanbanBoard } from './KanbanBoard';
-export { KanbanColumn } from './KanbanColumn';
-export { RequestCard } from './RequestCard';
+export { default as KanbanBoard } from './KanbanBoard.vue'
+export { default as KanbanColumn } from './KanbanColumn.vue'
+export { default as RequestCard } from './RequestCard.vue'
+export { default as StatusManager } from './StatusManager.vue'
