@@ -42,6 +42,30 @@ const routes: RouteRecordRaw[] = [
     name: 'Settings',
     component: () => import('../pages/SettingsPage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    redirect: '/admin/organizations',
+    meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
+  },
+  {
+    path: '/admin/organizations',
+    name: 'AdminOrganizations',
+    component: () => import('../pages/admin/OrganizationsPage.vue'),
+    meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('../pages/admin/UsersPage.vue'),
+    meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
+  },
+  {
+    path: '/admin/roles-permissions',
+    name: 'AdminRolesPermissions',
+    component: () => import('../pages/admin/RolesPermissionsPage.vue'),
+    meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
   }
 ]
 
@@ -61,6 +85,7 @@ router.beforeEach((to, from, next) => {
 
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
+  const requiresRole = to.matched.find(record => record.meta.requiresRole)?.meta.requiresRole as string[] | undefined
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Save the intended destination for redirect after login
@@ -79,6 +104,15 @@ router.beforeEach((to, from, next) => {
     } else {
       // Redirect to dashboard if guest route but user is authenticated
       next('/dashboard')
+    }
+  } else if (requiresRole && requiresRole.length > 0) {
+    // Check if user has required roles
+    if (!authStore.hasAnyRole(requiresRole)) {
+      // User doesn't have required role, redirect to dashboard with error
+      console.warn(`Access denied. Required roles: ${requiresRole.join(', ')}`)
+      next('/dashboard')
+    } else {
+      next()
     }
   } else {
     next()

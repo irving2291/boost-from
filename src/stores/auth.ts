@@ -8,6 +8,8 @@ export interface User {
   email: string
   name: string
   org_id: string
+  roles?: string[]
+  permissions?: string[]
 }
 
 export interface LoginCredentials {
@@ -42,6 +44,28 @@ export const useAuthStore = defineStore('auth', () => {
     return `${tokenType.value} ${token.value}`
   })
 
+  const hasRole = computed(() => (role: string) => {
+    return user.value?.roles?.includes(role) || false
+  })
+
+  const hasPermission = computed(() => (permission: string) => {
+    return user.value?.permissions?.includes(permission) || false
+  })
+
+  const hasAnyRole = computed(() => (roles: string[]) => {
+    if (!user.value?.roles) return false
+    return roles.some(role => user.value?.roles?.includes(role))
+  })
+
+  const hasAnyPermission = computed(() => (permissions: string[]) => {
+    if (!user.value?.permissions) return false
+    return permissions.some(permission => user.value?.permissions?.includes(permission))
+  })
+
+  const isAdmin = computed(() => {
+    return hasRole.value('admin') || hasRole.value('super-admin')
+  })
+
   // Private methods
   const extractUserFromToken = (accessToken: string): User | null => {
     const decoded = decodeJWT(accessToken)
@@ -51,7 +75,9 @@ export const useAuthStore = defineStore('auth', () => {
       sub: decoded.sub,
       email: decoded.email,
       name: decoded.name,
-      org_id: decoded.org_id
+      org_id: decoded.org_id,
+      roles: decoded.roles || [],
+      permissions: decoded.permissions || []
     }
   }
 
@@ -101,18 +127,31 @@ export const useAuthStore = defineStore('auth', () => {
       clearTimeout(refreshTimer.value)
     }
 
-    // Refresh token 5 minutes before expiration
-    const refreshTime = (expiresIn.value - 300) * 1000 // Convert to milliseconds and subtract 5 minutes
+    // Only refresh if there's more than 1 day (86400 seconds) until expiration
+    const oneDayInSeconds = 86400
+    const timeUntilExpiration = expiresIn.value
     
-    if (refreshTime > 0) {
-      refreshTimer.value = setTimeout(async () => {
-        try {
-          await refreshToken()
-        } catch (error) {
-          console.error('Auto refresh failed:', error)
-          await logout()
-        }
-      }, refreshTime)
+    if (timeUntilExpiration <= oneDayInSeconds) {
+      // If there's 1 day or less, refresh token 5 minutes before expiration
+      const refreshTime = (expiresIn.value - 300) * 1000 // Convert to milliseconds and subtract 5 minutes
+      
+      if (refreshTime > 0) {
+        refreshTimer.value = setTimeout(async () => {
+          try {
+            await refreshToken()
+          } catch (error) {
+            console.error('Auto refresh failed:', error)
+            await logout()
+          }
+        }, refreshTime)
+      }
+    } else {
+      // If there's more than 1 day, set timer to check again when 1 day remains
+      const timeUntilOneDayLeft = (timeUntilExpiration - oneDayInSeconds) * 1000
+      
+      refreshTimer.value = setTimeout(() => {
+        setupTokenRefresh() // Re-evaluate when 1 day remains
+      }, timeUntilOneDayLeft)
     }
   }
 
@@ -255,6 +294,11 @@ export const useAuthStore = defineStore('auth', () => {
     // Getters
     isAuthenticated,
     authHeader,
+    hasRole,
+    hasPermission,
+    hasAnyRole,
+    hasAnyPermission,
+    isAdmin,
     // Actions
     login,
     refreshToken,

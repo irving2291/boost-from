@@ -1,3 +1,139 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey } from '@phosphor-icons/vue'
+import Badge from '../ui/Badge.vue'
+import { cn } from '../../utils'
+import { useRequestsStore } from '../../stores/requests'
+import { useAuthStore } from '../../stores/auth'
+import { REQUEST_STATUSES, STATUS_LABELS } from '../../utils/constants'
+import NavItem from './NavItem.vue'
+import type { NavigationItem } from '../../types/navigation'
+
+interface Props {
+  currentPath?: string
+  className?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  currentPath: '/dashboard',
+  className: ''
+})
+
+const emit = defineEmits<{
+  navigate: [path: string]
+}>()
+
+const requestsStore = useRequestsStore()
+const authStore = useAuthStore()
+
+const summary = computed(() => requestsStore.summary)
+const activeRequestsCount = computed(() => {
+  const summaryData = summary.value
+  if (!summaryData) return 0
+  return REQUEST_STATUSES.reduce((total, status) => total + (summaryData.byStatus[status] || 0), 0)
+})
+
+const allNavigationItems = computed((): NavigationItem[] => [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: PhHouse,
+    path: '/dashboard',
+  },
+  {
+    id: 'crm',
+    label: 'CRM',
+    icon: PhUsersThree,
+    children: [
+      {
+        id: 'requests',
+        label: 'Requests',
+        icon: PhKanban,
+        path: '/requests',
+        badge: activeRequestsCount.value,
+      },
+      {
+        id: 'analytics',
+        label: 'Analíticas',
+        icon: PhChartLine,
+        path: '/analytics',
+      },
+    ],
+  },
+  {
+    id: 'admin',
+    label: 'Administración',
+    icon: PhShield,
+    roles: ['admin', 'super-admin'],
+    children: [
+      {
+        id: 'organizations',
+        label: 'Organizaciones',
+        icon: PhBuildings,
+        path: '/admin/organizations',
+        roles: ['admin', 'super-admin'],
+      },
+      {
+        id: 'users',
+        label: 'Usuarios',
+        icon: PhUsers,
+        path: '/admin/users',
+        roles: ['admin', 'super-admin'],
+      },
+      {
+        id: 'roles-permissions',
+        label: 'Roles y Permisos',
+        icon: PhKey,
+        path: '/admin/roles-permissions',
+        roles: ['admin', 'super-admin'],
+      },
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'Configuración',
+    icon: PhGear,
+    path: '/settings',
+  },
+])
+
+const navigationItems = computed(() => {
+  const filterByRole = (items: NavigationItem[]): NavigationItem[] => {
+    return items.filter(item => {
+      // If item has roles requirement, check if user has any of those roles
+      if (item.roles && item.roles.length > 0) {
+        if (!authStore.hasAnyRole(item.roles)) {
+          return false
+        }
+      }
+      
+      // If item has children, filter them recursively
+      if (item.children) {
+        const filteredChildren = filterByRole(item.children)
+        // Only include parent if it has visible children or no role restrictions
+        if (filteredChildren.length === 0 && item.roles && item.roles.length > 0) {
+          return false
+        }
+        item.children = filteredChildren
+      }
+      
+      return true
+    })
+  }
+  
+  return filterByRole([...allNavigationItems.value])
+})
+
+const isActive = (path: string) => props.currentPath === path
+
+const handleNavigation = (path?: string) => {
+  
+  if (path) {
+    emit('navigate', path)
+  }
+}
+</script>
+
 <template>
   <aside 
     :class="cn(
@@ -18,43 +154,15 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 px-4 py-6">
-      <ul class="space-y-2">
-        <li v-for="item in navigationItems" :key="item.id">
-          <button
-            @click="handleNavigation(item.path)"
-            :class="cn(
-              'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all duration-200',
-              'hover:bg-slate-600 hover:bg-opacity-40 focus:outline-none focus:ring-2 focus:ring-slate-400',
-              isActive(item.path) && 'text-white',
-              !isActive(item.path) && 'text-slate-200 hover:text-white'
-            )"
-            :style="isActive(item.path) ? { background: 'linear-gradient(to right, #5A6578, #4A5568)' } : undefined"
-          >
-            <div class="flex items-center space-x-3">
-              <span :class="cn(
-                'transition-colors duration-200',
-                isActive(item.path) ? 'text-white' : 'text-slate-200'
-              )">
-                <component :is="item.icon" :size="20" />
-              </span>
-              <span class="font-medium">
-                {{ item.label }}
-              </span>
-            </div>
-            
-            <Badge
-              v-if="item.badge !== undefined && item.badge > 0"
-              variant="secondary"
-              size="sm"
-              class="bg-slate-600 bg-opacity-70 text-white border-slate-500"
-            >
-              {{ item.badge }}
-            </Badge>
-          </button>
-        </li>
-      </ul>
-    </nav>
+     <nav class="flex-1 px-4 py-6 space-y-1">
+      <template v-for="item in navigationItems" :key="item.id">
+        <NavItem
+          :item="item"
+          :current-path="currentPath"
+          @navigate="handleNavigation"
+        />
+      </template>
+     </nav>
 
     <!-- Status Summary -->
     <div v-if="summary" class="p-4 border-t border-slate-300 border-opacity-30">
@@ -98,77 +206,3 @@
     </div>
   </aside>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-import { PhHouse, PhKanban, PhChartLine, PhGear } from '@phosphor-icons/vue'
-import Badge from '../ui/Badge.vue'
-import { cn } from '../../utils'
-import { useRequestsStore } from '../../stores/requests'
-import { REQUEST_STATUSES, STATUS_LABELS } from '../../utils/constants'
-
-interface Props {
-  currentPath?: string
-  className?: string
-}
-
-interface NavigationItem {
-  id: string
-  label: string
-  icon: any
-  path: string
-  badge?: number
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  currentPath: '/dashboard',
-  className: ''
-})
-
-const emit = defineEmits<{
-  navigate: [path: string]
-}>()
-
-const requestsStore = useRequestsStore()
-
-const summary = computed(() => requestsStore.summary)
-const activeRequestsCount = computed(() => {
-  const summaryData = summary.value
-  if (!summaryData) return 0
-  return REQUEST_STATUSES.reduce((total, status) => total + (summaryData.byStatus[status] || 0), 0)
-})
-
-const navigationItems = computed((): NavigationItem[] => [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: PhHouse,
-    path: '/dashboard',
-  },
-  {
-    id: 'requests',
-    label: 'Requests',
-    icon: PhKanban,
-    path: '/requests',
-    badge: activeRequestsCount.value,
-  },
-  {
-    id: 'analytics',
-    label: 'Analíticas',
-    icon: PhChartLine,
-    path: '/analytics',
-  },
-  {
-    id: 'settings',
-    label: 'Configuración',
-    icon: PhGear,
-    path: '/settings',
-  },
-])
-
-const isActive = (path: string) => props.currentPath === path
-
-const handleNavigation = (path: string) => {
-  emit('navigate', path)
-}
-</script>
