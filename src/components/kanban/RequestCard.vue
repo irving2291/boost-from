@@ -1,32 +1,44 @@
 <template>
   <div class="bg-white rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
-       :style="{ borderLeftColor: statusColor }">
+       :style="{ borderLeftColor: statusColor }"
+       @click="openModal">
     <!-- Header with name and priority -->
     <div class="p-4">
       <div class="flex items-start justify-between mb-2">
         <div class="flex-1 min-w-0">
           <h4 class="text-base font-semibold text-charcoal truncate">
-            {{ request.clientName }}
+            {{ getClientName(request) }}
           </h4>
           <p class="text-sm text-slate-light mt-1">
-            {{ request.company }}
+            {{ request.email }}
           </p>
         </div>
         
         <!-- Priority Badge -->
-        <span :class="[
+        <span v-if="request.priority" :class="[
           'px-2 py-1 text-xs rounded font-bold uppercase tracking-wide',
           getPriorityColor(request.priority)
         ]">
           {{ getPriorityLabel(request.priority) }}
         </span>
+        <!-- Status Badge if no priority -->
+        <span v-else class="px-2 py-1 text-xs rounded font-bold uppercase tracking-wide bg-blue-100 text-blue-700">
+          {{ request.status.name }}
+        </span>
       </div>
 
       <!-- Amount -->
-      <div class="mb-3">
+      <div v-if="request.amount" class="mb-3">
         <span class="text-xl font-bold text-accent-green">
           ${{ formatAmount(request.amount) }}
         </span>
+      </div>
+      
+      <!-- Contact Info -->
+      <div class="mb-3">
+        <p class="text-sm text-slate-600">
+          📞 {{ request.phone }}
+        </p>
       </div>
 
       <!-- Time info -->
@@ -68,9 +80,18 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   updateStatus: [requestId: string, newStatusName: string]
+  openDetails: [request: RequestInformation]
 }>()
 
-const getPriorityColor = (priority: string) => {
+const getClientName = (request: RequestInformation) => {
+  // Handle the API typo "fistName" instead of "firstName"
+  const firstName = request.fistName || request.firstName || ''
+  const lastName = request.lastName || ''
+  return `${firstName} ${lastName}`.trim() || request.clientName || 'Sin nombre'
+}
+
+const getPriorityColor = (priority?: string) => {
+  if (!priority) return 'bg-slate-100 text-slate-700'
   const colorMap = {
     high: 'bg-accent-red text-white',
     medium: 'bg-accent-yellow text-white',
@@ -79,7 +100,8 @@ const getPriorityColor = (priority: string) => {
   return colorMap[priority as keyof typeof colorMap] || 'bg-slate-100 text-slate-700'
 }
 
-const getPriorityLabel = (priority: string) => {
+const getPriorityLabel = (priority?: string) => {
+  if (!priority) return 'Normal'
   const labelMap = {
     high: 'Alta',
     medium: 'Media',
@@ -108,6 +130,10 @@ const getTimeInfo = (dateString: string) => {
     const diffInDays = Math.floor(diffInHours / 24)
     return `Hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`
   }
+}
+
+const openModal = () => {
+  emit('openDetails', props.request)
 }
 </script>
 

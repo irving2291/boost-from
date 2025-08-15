@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey } from '@phosphor-icons/vue'
+import { computed, onMounted } from 'vue'
+import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText } from '@phosphor-icons/vue'
 import Badge from '../ui/Badge.vue'
 import { cn } from '../../utils'
 import { useRequestsStore } from '../../stores/requests'
 import { useAuthStore } from '../../stores/auth'
+import { useOrganizationsStore } from '../../stores/organizations'
 import { REQUEST_STATUSES, STATUS_LABELS } from '../../utils/constants'
 import NavItem from './NavItem.vue'
 import type { NavigationItem } from '../../types/navigation'
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 
 const requestsStore = useRequestsStore()
 const authStore = useAuthStore()
+const organizationsStore = useOrganizationsStore()
 
 const summary = computed(() => requestsStore.summary)
 const activeRequestsCount = computed(() => {
@@ -51,6 +53,18 @@ const allNavigationItems = computed((): NavigationItem[] => [
         icon: PhKanban,
         path: '/requests',
         badge: activeRequestsCount.value,
+      },
+      {
+        id: 'quotations',
+        label: 'Cotizaciones',
+        icon: PhFileText,
+        path: '/quotations',
+      },
+      {
+        id: 'chat',
+        label: 'Comunicación',
+        icon: PhChatCircle,
+        path: '/chat',
       },
       {
         id: 'analytics',
@@ -132,6 +146,16 @@ const handleNavigation = (path?: string) => {
     emit('navigate', path)
   }
 }
+
+const handleLogoError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/default-org-logo.svg'
+}
+
+onMounted(() => {
+  // Load organization data from localStorage on component mount
+  organizationsStore.loadCurrentOrganizationFromStorage()
+})
 </script>
 
 <template>
@@ -145,12 +169,31 @@ const handleNavigation = (path?: string) => {
   >
     <!-- Logo/Brand -->
     <div class="p-6 border-b border-slate-300 border-opacity-30">
-      <h1 class="text-xl font-bold text-white">
-        CRM System
-      </h1>
-      <p class="text-sm text-slate-400 mt-1">
-        Gestión de Clientes
-      </p>
+      <div class="flex items-center space-x-3">
+        <div class="flex-shrink-0">
+          <img
+            v-if="organizationsStore.currentOrganization"
+            :src="organizationsStore.getLogoUrl(organizationsStore.currentOrganization.logo_path)"
+            :alt="`${organizationsStore.currentOrganization.name} logo`"
+            class="h-10 w-10 rounded-full object-cover bg-gray-100"
+            @error="handleLogoError"
+          />
+          <div
+            v-else
+            class="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center"
+          >
+            <PhBuildings :size="20" class="text-white" />
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h1 class="text-lg font-bold text-white truncate">
+            {{ organizationsStore.currentOrganization?.name || 'CRM System' }}
+          </h1>
+          <p class="text-xs text-slate-400 mt-1 truncate">
+            Gestión de Clientes
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- Navigation -->

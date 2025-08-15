@@ -1,19 +1,25 @@
 <template>
   <div class="min-h-screen bg-slate-50 flex">
-    <!-- Sidebar -->
-    <Sidebar 
-      :current-path="currentPath"
-      @navigate="handleNavigation"
-    />
+    <!-- Fixed Sidebar -->
+    <div class="w-64 flex-shrink-0">
+      <div class="fixed left-0 top-0 h-full w-64 z-10">
+        <Sidebar
+          :current-path="currentPath"
+          @navigate="handleNavigation"
+        />
+      </div>
+    </div>
     
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col">
-      <!-- Header -->
-      <Header />
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 bg-white border-b border-slate-200 z-10 relative">
+        <Header />
+      </div>
       
       <!-- Page Content -->
-      <main class="flex-1 p-6 overflow-auto">
-        <div class="max-w-7xl mx-auto">
+      <main class="flex-1 p-6 overflow-hidden">
+        <div class="h-full">
           <slot />
         </div>
       </main>

@@ -1,5 +1,6 @@
 <template>
-  <div class="space-y-6">
+  <Layout>
+    <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
@@ -283,11 +284,13 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import Layout from '../../components/layout/Layout.vue'
 import { useAuthStore } from '../../stores/auth'
 
 interface User {
@@ -350,7 +353,7 @@ const debouncedSearch = () => {
 
 const fetchOrganizations = async () => {
   try {
-    const response = await fetch('https://boost.pitahayasoft.com/auth/organizations', {
+    const response = await fetch('https://boost.pitahayasoft.com/api/v1/auth/organizations', {
       headers: {
         'Authorization': authStore.authHeader || '',
         'Content-Type': 'application/json'
@@ -375,7 +378,7 @@ const fetchUsers = async () => {
     if (selectedOrgId.value) params.append('org_id', selectedOrgId.value)
     if (searchTerm.value) params.append('search', searchTerm.value)
     
-    const url = `https://boost.pitahayasoft.com/auth/users${params.toString() ? '?' + params.toString() : ''}`
+    const url = `https://boost.pitahayasoft.com/api/v1/auth/users${params.toString() ? '?' + params.toString() : ''}`
     
     const response = await fetch(url, {
       headers: {
@@ -402,8 +405,8 @@ const saveUser = async () => {
   
   try {
     const url = editingUser.value 
-      ? `https://boost.pitahayasoft.com/auth/users/${editingUser.value.id}`
-      : 'https://boost.pitahayasoft.com/auth/users'
+      ? `https://boost.pitahayasoft.com/api/v1/auth/users/${editingUser.value.id}`
+      : 'https://boost.pitahayasoft.com/api/v1/auth/users'
     
     const method = editingUser.value ? 'PUT' : 'POST'
     
@@ -447,7 +450,7 @@ const deleteUser = async (user: User) => {
   }
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/auth/users/${user.id}`, {
+    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/users/${user.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authStore.authHeader || '',
@@ -477,7 +480,7 @@ const saveUserRoles = async () => {
   saving.value = true
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/auth/users/${selectedUser.value.id}/roles`, {
+    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/users/${selectedUser.value.id}/roles`, {
       method: 'PUT',
       headers: {
         'Authorization': authStore.authHeader || '',

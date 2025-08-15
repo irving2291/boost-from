@@ -1,5 +1,6 @@
 <template>
-  <div class="space-y-6">
+  <Layout>
+    <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Roles y Permisos</h1>
@@ -379,11 +380,13 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import Layout from '../../components/layout/Layout.vue'
 import { useAuthStore } from '../../stores/auth'
 
 interface Role {
@@ -447,7 +450,7 @@ const fetchRoles = async () => {
   loadingRoles.value = true
   
   try {
-    const response = await fetch('https://boost.pitahayasoft.com/auth/roles', {
+    const response = await fetch('https://boost.pitahayasoft.com/api/v1/auth/roles', {
       headers: {
         'Authorization': authStore.authHeader || '',
         'Content-Type': 'application/json'
@@ -471,7 +474,7 @@ const fetchPermissions = async () => {
   loadingPermissions.value = true
   
   try {
-    const response = await fetch('https://boost.pitahayasoft.com/auth/permissions', {
+    const response = await fetch('https://boost.pitahayasoft.com/api/v1/auth/permissions', {
       headers: {
         'Authorization': authStore.authHeader || '',
         'Content-Type': 'application/json'
@@ -496,8 +499,8 @@ const saveRole = async () => {
   
   try {
     const url = editingRole.value 
-      ? `https://boost.pitahayasoft.com/auth/roles/${editingRole.value.name}`
-      : 'https://boost.pitahayasoft.com/auth/roles'
+      ? `https://boost.pitahayasoft.com/api/v1/auth/roles/${editingRole.value.name}`
+      : 'https://boost.pitahayasoft.com/api/v1/auth/roles'
     
     const method = editingRole.value ? 'PUT' : 'POST'
     
@@ -528,8 +531,8 @@ const savePermission = async () => {
   
   try {
     const url = editingPermission.value 
-      ? `https://boost.pitahayasoft.com/auth/permissions/${editingPermission.value.name}`
-      : 'https://boost.pitahayasoft.com/auth/permissions'
+      ? `https://boost.pitahayasoft.com/api/v1/auth/permissions/${editingPermission.value.name}`
+      : 'https://boost.pitahayasoft.com/api/v1/auth/permissions'
     
     const method = editingPermission.value ? 'PUT' : 'POST'
     
@@ -580,7 +583,7 @@ const deleteRole = async (role: Role) => {
   }
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/auth/roles/${role.name}`, {
+    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/roles/${role.name}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authStore.authHeader || '',
@@ -604,7 +607,7 @@ const deletePermission = async (permission: Permission) => {
   }
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/auth/permissions/${permission.name}`, {
+    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/permissions/${permission.name}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authStore.authHeader || '',
@@ -634,7 +637,7 @@ const saveRolePermissions = async () => {
   saving.value = true
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/auth/roles/${selectedRole.value.name}/permissions`, {
+    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/roles/${selectedRole.value.name}/permissions`, {
       method: 'PUT',
       headers: {
         'Authorization': authStore.authHeader || '',

@@ -1,12 +1,13 @@
 <template>
-  <div class="space-y-6">
+  <Layout>
+    <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Gestión de Organizaciones</h1>
         <p class="text-gray-600 mt-1">Administra las organizaciones del sistema</p>
       </div>
       <button
-        @click="showCreateModal = true"
+        @click="createOrganization"
         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
       >
         Nueva Organización
@@ -65,7 +66,17 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="org in organizations" :key="org.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ org.name }}</div>
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0">
+                    <img
+                      :src="organizationsStore.getLogoUrl(org.logo_path)"
+                      :alt="`${org.name} logo`"
+                      class="h-10 w-10 rounded-full object-cover bg-gray-100"
+                      @error="handleImageError"
+                    />
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">{{ org.name }}</div>
+                </div>
               </td>
               <td class="px-6 py-4">
                 <div class="text-sm text-gray-900">{{ org.description || '-' }}</div>
@@ -162,28 +173,21 @@
         </form>
       </div>
     </div>
-  </div>
+    </div>
+  </Layout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import Layout from '../../components/layout/Layout.vue'
 import { useAuthStore } from '../../stores/auth'
+import { useOrganizationsStore } from '../../stores/organizations'
+import type { Organization } from '../../types'
 
-interface Organization {
-  id: string
-  name: string
-  description?: string
-  active: boolean
-  users_count?: number
-  created_at: string
-}
-
+const router = useRouter()
 const authStore = useAuthStore()
-
-const organizations = ref<Organization[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
-const saving = ref(false)
+const organizationsStore = useOrganizationsStore()
 
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
@@ -195,71 +199,45 @@ const formData = ref({
   active: true
 })
 
+// Use computed properties from the store
+const organizations = computed(() => organizationsStore.organizations)
+const loading = computed(() => organizationsStore.loading)
+const error = computed(() => organizationsStore.error)
+const saving = ref(false)
+
 const fetchOrganizations = async () => {
-  loading.value = true
-  error.value = null
-  
-  try {
-    const response = await fetch('https://boost.pitahayasoft.com/auth/organizations', {
-      headers: {
-        'Authorization': authStore.authHeader || '',
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error('Error al cargar organizaciones')
-    }
-    
-    const data = await response.json()
-    organizations.value = data.data || data
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error desconocido'
-  } finally {
-    loading.value = false
-  }
+  await organizationsStore.fetchOrganizations()
 }
 
 const saveOrganization = async () => {
   saving.value = true
   
   try {
-    const url = editingOrg.value 
-      ? `https://boost.pitahayasoft.com/auth/organizations/${editingOrg.value.id}`
-      : 'https://boost.pitahayasoft.com/auth/organizations'
-    
-    const method = editingOrg.value ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Authorization': authStore.authHeader || '',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData.value)
-    })
-    
-    if (!response.ok) {
-      throw new Error('Error al guardar organización')
+    let success = false
+    if (editingOrg.value) {
+      success = await organizationsStore.updateOrganization(editingOrg.value.id, formData.value)
+    } else {
+      success = await organizationsStore.createOrganization(formData.value)
     }
     
-    await fetchOrganizations()
-    closeModal()
+    if (success) {
+      closeModal()
+    }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error al guardar'
+    console.error('Error saving organization:', err)
   } finally {
     saving.value = false
   }
 }
 
+const createOrganization = () => {
+  // Navigate to the edit page for creating new organization
+  router.push('/admin/organizations/new')
+}
+
 const editOrganization = (org: Organization) => {
-  editingOrg.value = org
-  formData.value = {
-    name: org.name,
-    description: org.description || '',
-    active: org.active
-  }
-  showEditModal.value = true
+  // Navigate to the edit page instead of opening modal
+  router.push(`/admin/organizations/${org.id}`)
 }
 
 const deleteOrganization = async (org: Organization) => {
@@ -267,23 +245,7 @@ const deleteOrganization = async (org: Organization) => {
     return
   }
   
-  try {
-    const response = await fetch(`https://boost.pitahayasoft.com/auth/organizations/${org.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': authStore.authHeader || '',
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error('Error al eliminar organización')
-    }
-    
-    await fetchOrganizations()
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error al eliminar'
-  }
+  await organizationsStore.deleteOrganization(org.id)
 }
 
 const closeModal = () => {
@@ -303,6 +265,11 @@ const formatDate = (dateString: string) => {
     month: 'short',
     day: 'numeric'
   })
+}
+
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/default-org-logo.svg'
 }
 
 onMounted(() => {

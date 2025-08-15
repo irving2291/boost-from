@@ -17,10 +17,10 @@
             <PhTrendUp :size="20" class="text-green-500" />
           </div>
           <p class="text-2xl font-bold text-slate-900">
-            24.5%
+            {{ conversionRate.toFixed(1) }}%
           </p>
           <p class="text-xs text-green-600 mt-1">
-            +2.1% vs mes anterior
+            Tasa de conversión actual
           </p>
         </div>
 
@@ -30,10 +30,10 @@
             <PhUsers :size="20" class="text-blue-500" />
           </div>
           <p class="text-2xl font-bold text-blue-600">
-            1,247
+            {{ activeRequests }}
           </p>
           <p class="text-xs text-blue-600 mt-1">
-            +15 nuevos esta semana
+            Requests activos
           </p>
         </div>
 
@@ -43,10 +43,10 @@
             <PhCurrencyDollar :size="20" class="text-green-500" />
           </div>
           <p class="text-2xl font-bold text-green-600">
-            $45,230
+            ${{ totalRevenue.toLocaleString() }}
           </p>
           <p class="text-xs text-green-600 mt-1">
-            +8.2% vs mes anterior
+            Revenue total
           </p>
         </div>
 
@@ -56,10 +56,10 @@
             <PhChartLine :size="20" class="text-slate-400" />
           </div>
           <p class="text-2xl font-bold text-slate-900">
-            12.4 días
+            {{ avgTimeToClose }} días
           </p>
           <p class="text-xs text-slate-500 mt-1">
-            Para cerrar requests
+            Tiempo promedio de cierre
           </p>
         </div>
       </div>
@@ -88,16 +88,16 @@
         <h3 class="text-lg font-semibold text-slate-900 mb-4">Métricas de Rendimiento</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="text-center">
-            <p class="text-2xl font-bold text-blue-600">87%</p>
-            <p class="text-sm text-slate-600">Satisfacción del Cliente</p>
+            <p class="text-2xl font-bold text-blue-600">{{ totalRequests }}</p>
+            <p class="text-sm text-slate-600">Total Requests</p>
           </div>
           <div class="text-center">
-            <p class="text-2xl font-bold text-green-600">4.2</p>
-            <p class="text-sm text-slate-600">Rating Promedio</p>
+            <p class="text-2xl font-bold text-green-600">{{ totalQuotations }}</p>
+            <p class="text-sm text-slate-600">Total Cotizaciones</p>
           </div>
           <div class="text-center">
-            <p class="text-2xl font-bold text-purple-600">92%</p>
-            <p class="text-sm text-slate-600">Tasa de Retención</p>
+            <p class="text-2xl font-bold text-purple-600">{{ quotationAcceptanceRate.toFixed(1) }}%</p>
+            <p class="text-sm text-slate-600">Tasa Aceptación Cotizaciones</p>
           </div>
         </div>
       </div>
@@ -106,6 +106,82 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { PhTrendUp, PhUsers, PhCurrencyDollar, PhChartLine } from '@phosphor-icons/vue'
 import Layout from '../components/layout/Layout.vue'
+import { useRequestsStore } from '../stores/requests'
+import { useStatusStore } from '../stores/status'
+import { useQuotationsStore } from '../stores/quotations'
+
+const requestsStore = useRequestsStore()
+const statusStore = useStatusStore()
+const quotationsStore = useQuotationsStore()
+
+const loading = ref(false)
+
+// Computed analytics
+const totalRequests = computed(() => requestsStore.requests.length)
+const activeRequests = computed(() => {
+  return requestsStore.requests.filter(r =>
+    !['won', 'lost', 'close'].includes(r.status.code)
+  ).length
+})
+
+const conversionRate = computed(() => {
+  const total = requestsStore.requests.length
+  const won = requestsStore.requests.filter(r => r.status.code === 'won').length
+  return total > 0 ? (won / total) * 100 : 0
+})
+
+const totalRevenue = computed(() => {
+  return requestsStore.requests
+    .filter(r => r.status.code === 'won' && r.amount)
+    .reduce((sum, r) => sum + (r.amount || 0), 0)
+})
+
+const avgTimeToClose = computed(() => {
+  const closedRequests = requestsStore.requests.filter(r =>
+    ['won', 'lost'].includes(r.status.code)
+  )
+  
+  if (closedRequests.length === 0) return 0
+  
+  const totalDays = closedRequests.reduce((sum, request) => {
+    const created = new Date(request.createdAt)
+    const updated = request.updatedAt ? new Date(request.updatedAt) : new Date()
+    const days = Math.ceil((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+    return sum + days
+  }, 0)
+  
+  return Math.round(totalDays / closedRequests.length)
+})
+
+const totalQuotations = computed(() => quotationsStore.quotations.length)
+const acceptedQuotations = computed(() =>
+  quotationsStore.quotations.filter(q => q.status === 'accepted').length
+)
+
+const quotationAcceptanceRate = computed(() => {
+  const total = quotationsStore.quotations.length
+  return total > 0 ? (acceptedQuotations.value / total) * 100 : 0
+})
+
+const fetchAnalyticsData = async () => {
+  loading.value = true
+  try {
+    await Promise.all([
+      statusStore.fetchStatuses(),
+      requestsStore.fetchRequests(),
+      quotationsStore.fetchQuotations()
+    ])
+  } catch (error) {
+    console.error('Error fetching analytics data:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchAnalyticsData()
+})
 </script>

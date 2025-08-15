@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/quotations',
+    name: 'Quotations',
+    component: () => import('../pages/QuotationsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/analytics',
     name: 'Analytics',
     component: () => import('../pages/AnalyticsPage.vue'),
@@ -56,6 +62,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
   },
   {
+    path: '/admin/organizations/:id',
+    name: 'AdminOrganizationEdit',
+    component: () => import('../pages/admin/OrganizationEditPage.vue'),
+    meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
+  },
+  {
     path: '/admin/users',
     name: 'AdminUsers',
     component: () => import('../pages/admin/UsersPage.vue'),
@@ -66,6 +78,18 @@ const routes: RouteRecordRaw[] = [
     name: 'AdminRolesPermissions',
     component: () => import('../pages/admin/RolesPermissionsPage.vue'),
     meta: { requiresAuth: true, requiresRole: ['admin', 'super-admin'] }
+  },
+  {
+    path: '/chat',
+    name: 'Chat',
+    component: () => import('../pages/ChatPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/chat/:conversationId',
+    name: 'ChatConversation',
+    component: () => import('../pages/ChatPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

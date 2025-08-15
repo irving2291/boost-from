@@ -112,6 +112,9 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('auth_expires_in')
     localStorage.removeItem('auth_user')
 
+    // Clear organization data
+    localStorage.removeItem('current_organization')
+
     // Clear refresh timer
     if (refreshTimer.value) {
       clearTimeout(refreshTimer.value)
@@ -177,6 +180,9 @@ export const useAuthStore = defineStore('auth', () => {
       const data: LoginResponse = await response.json()
       setTokenData(data)
 
+      // Load organization data after successful login
+      await loadOrganizationData()
+
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Error desconocido'
       throw err
@@ -240,7 +246,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const initializeAuth = () => {
+  const initializeAuth = async () => {
     // Check if user is already logged in
     const storedToken = localStorage.getItem('auth_token')
     const storedTokenType = localStorage.getItem('auth_token_type')
@@ -258,6 +264,9 @@ export const useAuthStore = defineStore('auth', () => {
           
           // Setup auto refresh
           setupTokenRefresh()
+          
+          // Load organization data
+          await loadOrganizationData()
         } else {
           // Token expired, clear data
           clearTokenData()
@@ -278,6 +287,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   const clearError = () => {
     error.value = null
+  }
+
+  const loadOrganizationData = async () => {
+    if (!user.value?.org_id) return
+    
+    try {
+      // Dynamically import to avoid circular dependency
+      const { useOrganizationsStore } = await import('./organizations')
+      const organizationsStore = useOrganizationsStore()
+      await organizationsStore.loadCurrentOrganizationFromToken()
+    } catch (err) {
+      console.error('Error loading organization data:', err)
+    }
   }
 
   // Setup periodic token expiration check

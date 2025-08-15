@@ -1,9 +1,7 @@
 <template>
-  <div class="flex flex-col rounded-lg border-2 bg-white transition-all duration-200 min-h-[600px]"
-       :style="{ borderColor: status.color + '20' }">
-    <!-- Column Header -->
-    <div class="flex items-center justify-between p-4 rounded-t-lg border-b-2 bg-gray-50"
-         :style="{ borderBottomColor: status.color + '20' }">
+  <div class="flex flex-col bg-gray-100 rounded-lg transition-all duration-200 min-h-[600px]">
+    <!-- Column Header - Sticky -->
+    <div class="sticky top-0 z-20 flex items-center justify-between p-4 bg-slate-300">
       <div class="flex items-center space-x-3">
         <h3 class="font-bold text-lg text-charcoal uppercase tracking-wide">
           {{ status.label }}
@@ -13,12 +11,24 @@
         </div>
       </div>
       
-      <button
-        @click="handleAddRequest"
-        class="p-1 hover:bg-white hover:bg-opacity-50 rounded transition-colors"
-      >
-        <PhPlus :size="16" class="text-slate-600" />
-      </button>
+      <div class="flex items-center space-x-1">
+        <button
+          @click="handleAddRequest"
+          class="p-1 hover:bg-white hover:bg-opacity-50 rounded transition-colors"
+          title="Agregar lead"
+        >
+          <PhPlus :size="16" class="text-slate-600" />
+        </button>
+        
+        <button
+          v-if="canDelete"
+          @click="handleDeleteStatus"
+          class="p-1 hover:bg-red-100 rounded transition-colors"
+          title="Eliminar estado"
+        >
+          <PhTrash :size="16" class="text-red-500" />
+        </button>
+      </div>
     </div>
 
     <!-- Droppable Area -->
@@ -31,12 +41,6 @@
           <p class="text-sm text-slate-500">
             No hay leads en {{ status.label.toLowerCase() }}
           </p>
-          <button
-            @click="handleAddRequest"
-            class="mt-2 text-xs text-slate-600 hover:text-slate-800 transition-colors"
-          >
-            Agregar lead
-          </button>
         </div>
         
         <RequestCard
@@ -45,38 +49,33 @@
           :request="request"
           :status-color="status.color"
           @update-status="handleStatusUpdate"
+          @open-details="handleOpenDetails"
         />
       </div>
-    </div>
-
-    <!-- Column Footer -->
-    <div class="p-3 border-t border-slate-200">
-      <button
-        @click="handleAddRequest"
-        class="w-full text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-50 py-2 rounded transition-colors flex items-center justify-center space-x-1"
-      >
-        <PhPlus :size="14" />
-        <span>Agregar lead</span>
-      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PhPlus } from '@phosphor-icons/vue'
+import { PhPlus, PhTrash } from '@phosphor-icons/vue'
 import RequestCard from './RequestCard.vue'
 import type { RequestInformation, StatusDefinition } from '../../types'
 
 interface Props {
   status: StatusDefinition
   requests: RequestInformation[]
+  canDelete?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  canDelete: false
+})
 
 const emit = defineEmits<{
   updateStatus: [requestId: string, newStatusName: string]
   addRequest: [status: StatusDefinition]
+  deleteStatus: [status: StatusDefinition]
+  openDetails: [request: RequestInformation]
 }>()
 
 const handleStatusUpdate = (requestId: string, newStatusName: string) => {
@@ -85,5 +84,13 @@ const handleStatusUpdate = (requestId: string, newStatusName: string) => {
 
 const handleAddRequest = () => {
   emit('addRequest', props.status)
+}
+
+const handleDeleteStatus = () => {
+  emit('deleteStatus', props.status)
+}
+
+const handleOpenDetails = (request: RequestInformation) => {
+  emit('openDetails', request)
 }
 </script>

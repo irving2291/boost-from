@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { RequestInformation, RequestStatus, RequestsSummary } from '../types'
-import { REQUEST_STATUSES } from '../utils/constants'
+import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
+import { useAuthStore } from './auth'
+import { useStatusStore } from './status'
 
 export const useRequestsStore = defineStore('requests', () => {
   // State
@@ -14,6 +16,31 @@ export const useRequestsStore = defineStore('requests', () => {
 
   // Getters
   const requestsByStatus = computed(() => {
+    const statusStore = useStatusStore()
+    const grouped: Record<string, RequestInformation[]> = {}
+    
+    // Initialize groups for all available statuses
+    statusStore.statuses.forEach(status => {
+      grouped[status.name] = []
+    })
+
+    requests.value.forEach(request => {
+      // Map request status to dynamic status name using the status code
+      const statusCode = request.status.code
+      if (grouped[statusCode]) {
+        grouped[statusCode].push(request)
+      } else {
+        // Fallback for unmapped statuses
+        if (!grouped['UNKNOWN']) grouped['UNKNOWN'] = []
+        grouped['UNKNOWN'].push(request)
+      }
+    })
+
+    return grouped
+  })
+
+  // Legacy getter for backward compatibility
+  const requestsByLegacyStatus = computed(() => {
     const grouped: Record<RequestStatus, RequestInformation[]> = {
       NEW: [],
       IN_PROGRESS: [],
@@ -24,7 +51,9 @@ export const useRequestsStore = defineStore('requests', () => {
     }
 
     requests.value.forEach(request => {
-      grouped[request.status].push(request)
+      // Use legacy mapping for backward compatibility
+      const legacyStatus = mapStatusCodeToLegacy(request.status.code)
+      grouped[legacyStatus].push(request)
     })
 
     return grouped
@@ -41,7 +70,9 @@ export const useRequestsStore = defineStore('requests', () => {
     }
 
     requests.value.forEach(request => {
-      byStatus[request.status]++
+      // Use legacy mapping for summary
+      const legacyStatus = mapStatusCodeToLegacy(request.status.code)
+      byStatus[legacyStatus]++
     })
 
     const total = requests.value.length
@@ -56,26 +87,83 @@ export const useRequestsStore = defineStore('requests', () => {
     }
   })
 
+  // Helper function to map status codes to legacy status
+  const mapStatusCodeToLegacy = (code: string): RequestStatus => {
+    const mapping: Record<string, RequestStatus> = {
+      'new': 'NEW',
+      'in_progress': 'IN_PROGRESS',
+      'recontact': 'RECONTACT',
+      'won': 'WON',
+      'lost': 'LOST',
+      'close': 'CLOSE'
+    }
+    return mapping[code] || 'NEW'
+  }
+
   // Actions
-  const fetchRequests = async () => {
+  const fetchRequests = async (statusCode?: string) => {
     loading.value = true
     error.value = null
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      requests.value = mockRequests
+      const authStore = useAuthStore()
+      const statusStore = useStatusStore()
+      
+      // Build URL with status query parameters and limit
+      let url = API_ENDPOINTS.CRM.REQUESTS
+      const params = new URLSearchParams()
+      
+      // Add limit parameter
+      params.append('limit', '999')
+      
+      // Add status parameters
+      const statusCodes = statusCode ? [statusCode] : statusStore.statuses.map(s => s.name)
+      if (statusCodes.length > 0) {
+        statusCodes.forEach(code => params.append('status', code))
+      }
+      
+      url += `?${params.toString()}`
+      
+      const response = await fetch(url, {
+        headers: createAuthHeaders(authStore.token || undefined)
+      })
+      
+      await handleApiError(response)
+      const data = await response.json()
+      
+      // Handle API response - adjust based on actual API structure
+      if (Array.isArray(data)) {
+        requests.value = data
+      } else if (data.data && Array.isArray(data.data)) {
+        requests.value = data.data
+      } else {
+        console.warn('Unexpected API response format for requests')
+        requests.value = []
+      }
     } catch (err) {
+      console.error('Error fetching requests from API:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching requests'
+      // Fallback to mock data on error for development
+      requests.value = mockRequests
     } finally {
       loading.value = false
     }
   }
 
-  const updateRequestStatus = async (requestId: string, newStatus: RequestStatus) => {
+  const fetchRequestsByStatus = async (statusCode: string) => {
+    return fetchRequests(statusCode)
+  }
+
+  const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
     const request = requests.value.find(r => r.id === requestId)
     if (request) {
-      request.status = newStatus
+      // Update the status object with the new status code
+      // For now, we'll just update the code, but in a real implementation
+      // this would call the API to get the full status object
+      request.status = {
+        ...request.status,
+        code: newStatusCode
+      }
       request.updatedAt = new Date().toISOString()
     }
   }
@@ -109,9 +197,11 @@ export const useRequestsStore = defineStore('requests', () => {
     error,
     // Getters
     requestsByStatus,
+    requestsByLegacyStatus,
     summary,
     // Actions
     fetchRequests,
+    fetchRequestsByStatus,
     updateRequestStatus,
     addRequest,
     deleteRequest

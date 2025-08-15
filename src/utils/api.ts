@@ -1,14 +1,44 @@
 // API Configuration
-export const API_BASE_URL = 'https://boost.pitahayasoft.com'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://boost.pitahayasoft.com/api/v1'
 
 // API Endpoints
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: `${API_BASE_URL}/api/v1/auth/login`,
-    REFRESH: `${API_BASE_URL}/api/v1/auth/refresh`,
-    LOGOUT: `${API_BASE_URL}/api/v1/auth/logout`,
+    LOGIN: `${API_BASE_URL}/auth/login`,
+    REFRESH: `${API_BASE_URL}/auth/refresh`,
+    LOGOUT: `${API_BASE_URL}/auth/logout`,
+  },
+  ORGANIZATIONS: {
+    LIST: `${API_BASE_URL}/auth/organizations`,
+  },
+  CRM: {
+    REQUESTS: `${API_BASE_URL}/crm/requests-information`,
+    REQUESTS_STATUS: `${API_BASE_URL}/crm/requests-information/status`,
+    REQUESTS_SUMMARY: `${API_BASE_URL}/crm/requests-information/summary`,
+    QUOTATIONS: `${API_BASE_URL}/crm/quotations`,
   }
 } as const
+
+// API Helper functions
+export const createAuthHeaders = (token?: string) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  return headers
+}
+
+export const handleApiError = async (response: Response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+  }
+  return response
+}
 
 // JWT Token utilities
 export const decodeJWT = (token: string) => {
