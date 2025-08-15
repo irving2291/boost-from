@@ -292,6 +292,7 @@
 import { ref, onMounted } from 'vue'
 import Layout from '../../components/layout/Layout.vue'
 import { useAuthStore } from '../../stores/auth'
+import { API_ENDPOINTS } from '../../utils/api'
 
 interface User {
   id: string
@@ -313,6 +314,11 @@ interface Organization {
 }
 
 const authStore = useAuthStore()
+
+interface Role {
+  name: string
+  description?: string
+}
 
 const users = ref<User[]>([])
 const organizations = ref<Organization[]>([])
@@ -337,7 +343,7 @@ const userFormData = ref({
   active: true
 })
 
-const availableRoles = ref(['admin', 'user', 'manager', 'viewer'])
+const availableRoles = ref<string[]>([])
 const selectedUserRoles = ref<string[]>([])
 
 let searchTimeout: number | null = null
@@ -353,7 +359,7 @@ const debouncedSearch = () => {
 
 const fetchOrganizations = async () => {
   try {
-    const response = await fetch('https://boost.pitahayasoft.com/api/v1/auth/organizations', {
+    const response = await fetch(API_ENDPOINTS.ORGANIZATIONS.LIST, {
       headers: {
         'Authorization': authStore.authHeader || '',
         'Content-Type': 'application/json'
@@ -476,23 +482,48 @@ const manageUserRoles = (user: User) => {
 
 const saveUserRoles = async () => {
   if (!selectedUser.value) return
-  
+
   saving.value = true
-  
+
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/users/${selectedUser.value.id}/roles`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': authStore.authHeader || '',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ roles: selectedUserRoles.value })
-    })
-    
-    if (!response.ok) {
-      throw new Error('Error al actualizar roles')
+    const original = new Set<string>(selectedUser.value.roles || [])
+    const selected = new Set<string>(selectedUserRoles.value)
+
+    const toAdd = Array.from(selected).filter(r => !original.has(r))
+    const toRemove = Array.from(original).filter(r => !selected.has(r))
+
+    const requests: Promise<Response>[] = [
+      // Attach new roles to user
+      ...toAdd.map(role =>
+        fetch(API_ENDPOINTS.RBAC.ASSIGN.userRole(selectedUser.value!.id, role), {
+          method: 'POST',
+          headers: {
+            'Authorization': authStore.authHeader || '',
+            'Content-Type': 'application/json'
+          }
+        })
+      ),
+      // Detach removed roles from user
+      ...toRemove.map(role =>
+        fetch(API_ENDPOINTS.RBAC.ASSIGN.userRole(selectedUser.value!.id, role), {
+          method: 'DELETE',
+          headers: {
+            'Authorization': authStore.authHeader || '',
+            'Content-Type': 'application/json'
+          }
+        })
+      )
+    ]
+
+    if (requests.length > 0) {
+      const responses = await Promise.all(requests)
+      const failed = responses.find(r => !r.ok)
+      if (failed) {
+        const msg = await failed.text().catch(() => '')
+        throw new Error(`Error al actualizar roles: ${failed.status} ${msg}`)
+      }
     }
-    
+
     await fetchUsers()
     closeRolesModal()
   } catch (err) {
@@ -529,8 +560,27 @@ const formatDate = (dateString: string) => {
   })
 }
 
+const fetchAvailableRoles = async () => {
+  try {
+    const response = await fetch(API_ENDPOINTS.RBAC.ROLES, {
+      headers: {
+        'Authorization': authStore.authHeader || '',
+        'Content-Type': 'application/json'
+      }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      const list: Role[] = (data.data || data) as Role[]
+      availableRoles.value = list.map(r => r.name).sort()
+    }
+  } catch (err) {
+    console.error('Error fetching roles:', err)
+  }
+}
+
 onMounted(() => {
   fetchOrganizations()
   fetchUsers()
+  fetchAvailableRoles()
 })
 </script>

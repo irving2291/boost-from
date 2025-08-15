@@ -90,17 +90,17 @@
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-1">
                     <span
-                      v-for="permission in role.permissions.slice(0, 3)"
+                      v-for="permission in getRolePermissionsPreview(role)"
                       :key="permission"
                       class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
                     >
                       {{ permission }}
                     </span>
                     <span
-                      v-if="role.permissions.length > 3"
+                      v-if="getRolePermissionCount(role) > 3"
                       class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
                     >
-                      +{{ role.permissions.length - 3 }} más
+                      +{{ getRolePermissionCount(role) - 3 }} más
                     </span>
                   </div>
                 </td>
@@ -336,30 +336,37 @@
         </h3>
         
         <div class="space-y-4">
-          <div v-for="category in permissionCategories" :key="category" class="border rounded-lg p-4">
-            <h4 class="font-medium text-gray-900 mb-3 capitalize">{{ category }}</h4>
-            <div class="grid grid-cols-1 gap-2">
-              <div
-                v-for="permission in getPermissionsByCategory(category)"
-                :key="permission.name"
-                class="flex items-center"
-              >
-                <input
-                  :id="`perm-${permission.name}`"
-                  v-model="selectedRolePermissions"
-                  :value="permission.name"
-                  type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          <div v-if="loadingRoleGrants" class="p-6 text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-2 text-gray-600">Cargando permisos del rol...</p>
+          </div>
+          <template v-else>
+            <div v-for="category in permissionCategories" :key="category" class="border rounded-lg p-4">
+              <h4 class="font-medium text-gray-900 mb-3 capitalize">{{ category }}</h4>
+              <div class="grid grid-cols-1 gap-2">
+                <div
+                  v-for="permission in getPermissionsByCategory(category)"
+                  :key="permission.name"
+                  class="flex items-center"
                 >
-                <label :for="`perm-${permission.name}`" class="ml-2 block text-sm text-gray-900">
-                  {{ permission.name }}
-                  <span v-if="permission.description" class="text-gray-500">
-                    - {{ permission.description }}
-                  </span>
-                </label>
+                  <input
+                    :id="`perm-${permission.name}`"
+                    v-model="selectedRolePermissions"
+                    :value="permission.name"
+                    type="checkbox"
+                    :disabled="loadingRoleGrants || saving"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                  >
+                  <label :for="`perm-${permission.name}`" class="ml-2 block text-sm text-gray-900">
+                    {{ permission.name }}
+                    <span v-if="permission.description" class="text-gray-500">
+                      - {{ permission.description }}
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
+          </template>
         </div>
         
         <div class="flex justify-end space-x-3 pt-6 border-t mt-6">
@@ -372,7 +379,7 @@
           </button>
           <button
             @click="saveRolePermissions"
-            :disabled="saving"
+            :disabled="saving || loadingRoleGrants"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50"
           >
             {{ saving ? 'Guardando...' : 'Guardar Permisos' }}
@@ -388,6 +395,7 @@
 import { ref, onMounted, computed } from 'vue'
 import Layout from '../../components/layout/Layout.vue'
 import { useAuthStore } from '../../stores/auth'
+import { API_ENDPOINTS } from '../../utils/api'
 
 interface Role {
   name: string
@@ -436,6 +444,7 @@ const permissionFormData = ref({
 })
 
 const selectedRolePermissions = ref<string[]>([])
+const loadingRoleGrants = ref(false)
 
 const permissionCategories = computed(() => {
   const categories = new Set(permissions.value.map(p => p.category || 'General'))
@@ -446,11 +455,39 @@ const getPermissionsByCategory = (category: string) => {
   return permissions.value.filter(p => (p.category || 'General') === category)
 }
 
+// Helpers to safely handle roles that may not include permissions array
+const getRolePermissionCount = (role: Role): number => {
+  const perms = (role as any)?.permissions
+  return Array.isArray(perms) ? perms.length : 0
+}
+
+const getRolePermissionsPreview = (role: Role): string[] => {
+  const perms = (role as any)?.permissions
+  return Array.isArray(perms) ? perms.slice(0, 3) : []
+}
+
+// Extract ability names from variable grant payload shapes
+const extractAbilityNamesFromGrants = (payload: any): string[] => {
+  const data = payload?.data ?? payload
+  if (!data) return []
+  // Direct array of strings
+  if (Array.isArray(data) && data.every((i: any) => typeof i === 'string')) return data
+
+  const abilities = data.abilities ?? data.permissions ?? data
+  if (Array.isArray(abilities)) {
+    if (abilities.every((i: any) => typeof i === 'string')) return abilities
+    return abilities
+      .map((a: any) => a?.name ?? a?.ability ?? a?.slug ?? (typeof a === 'string' ? a : null))
+      .filter((n: any) => typeof n === 'string') as string[]
+  }
+  return []
+}
+
 const fetchRoles = async () => {
   loadingRoles.value = true
   
   try {
-    const response = await fetch('https://boost.pitahayasoft.com/api/v1/auth/roles', {
+    const response = await fetch(API_ENDPOINTS.RBAC.ROLES, {
       headers: {
         'Authorization': authStore.authHeader || '',
         'Content-Type': 'application/json'
@@ -474,7 +511,7 @@ const fetchPermissions = async () => {
   loadingPermissions.value = true
   
   try {
-    const response = await fetch('https://boost.pitahayasoft.com/api/v1/auth/permissions', {
+    const response = await fetch(API_ENDPOINTS.RBAC.ABILITIES, {
       headers: {
         'Authorization': authStore.authHeader || '',
         'Content-Type': 'application/json'
@@ -498,9 +535,9 @@ const saveRole = async () => {
   saving.value = true
   
   try {
-    const url = editingRole.value 
-      ? `https://boost.pitahayasoft.com/api/v1/auth/roles/${editingRole.value.name}`
-      : 'https://boost.pitahayasoft.com/api/v1/auth/roles'
+    const url = editingRole.value
+      ? `${API_ENDPOINTS.RBAC.ROLES}/${editingRole.value.name}`
+      : API_ENDPOINTS.RBAC.ROLES
     
     const method = editingRole.value ? 'PUT' : 'POST'
     
@@ -530,9 +567,9 @@ const savePermission = async () => {
   saving.value = true
   
   try {
-    const url = editingPermission.value 
-      ? `https://boost.pitahayasoft.com/api/v1/auth/permissions/${editingPermission.value.name}`
-      : 'https://boost.pitahayasoft.com/api/v1/auth/permissions'
+    const url = editingPermission.value
+      ? `${API_ENDPOINTS.RBAC.ABILITIES}/${editingPermission.value.name}`
+      : API_ENDPOINTS.RBAC.ABILITIES
     
     const method = editingPermission.value ? 'PUT' : 'POST'
     
@@ -583,7 +620,7 @@ const deleteRole = async (role: Role) => {
   }
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/roles/${role.name}`, {
+    const response = await fetch(`${API_ENDPOINTS.RBAC.ROLES}/${role.name}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authStore.authHeader || '',
@@ -607,7 +644,7 @@ const deletePermission = async (permission: Permission) => {
   }
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/permissions/${permission.name}`, {
+    const response = await fetch(`${API_ENDPOINTS.RBAC.ABILITIES}/${permission.name}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authStore.authHeader || '',
@@ -625,31 +662,82 @@ const deletePermission = async (permission: Permission) => {
   }
 }
 
-const manageRolePermissions = (role: Role) => {
+const manageRolePermissions = async (role: Role) => {
   selectedRole.value = role
-  selectedRolePermissions.value = [...role.permissions]
+  selectedRolePermissions.value = []
   showRolePermissionsModal.value = true
+  loadingRoleGrants.value = true
+
+  try {
+    const response = await fetch(API_ENDPOINTS.RBAC.GRANTS.role(role.name), {
+      headers: {
+        'Authorization': authStore.authHeader || '',
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const payload = await response.json()
+      const abilities = extractAbilityNamesFromGrants(payload)
+      selectedRolePermissions.value = abilities
+    } else {
+      // Fallback to existing role permissions if backend doesn't provide grants
+      const perms = (role as any)?.permissions
+      selectedRolePermissions.value = Array.isArray(perms) ? [...perms] : []
+    }
+  } catch (e) {
+    const perms = (role as any)?.permissions
+    selectedRolePermissions.value = Array.isArray(perms) ? [...perms] : []
+  } finally {
+    loadingRoleGrants.value = false
+  }
 }
 
 const saveRolePermissions = async () => {
   if (!selectedRole.value) return
-  
+
   saving.value = true
-  
+
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/roles/${selectedRole.value.name}/permissions`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': authStore.authHeader || '',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ permissions: selectedRolePermissions.value })
-    })
-    
-    if (!response.ok) {
-      throw new Error('Error al actualizar permisos del rol')
+    const original = new Set<string>(selectedRole.value.permissions || [])
+    const selected = new Set<string>(selectedRolePermissions.value)
+
+    const toAdd = Array.from(selected).filter(a => !original.has(a))
+    const toRemove = Array.from(original).filter(a => !selected.has(a))
+
+    // Perform attach/detach operations according to Bouncer-style endpoints
+    const requests: Promise<Response>[] = [
+      // Attach new abilities to role
+      ...toAdd.map(ability =>
+        fetch(API_ENDPOINTS.RBAC.ASSIGN.roleAbility(selectedRole.value!.name, ability), {
+          method: 'POST',
+          headers: {
+            'Authorization': authStore.authHeader || '',
+            'Content-Type': 'application/json'
+          }
+        })
+      ),
+      // Detach removed abilities from role
+      ...toRemove.map(ability =>
+        fetch(API_ENDPOINTS.RBAC.ASSIGN.roleAbility(selectedRole.value!.name, ability), {
+          method: 'DELETE',
+          headers: {
+            'Authorization': authStore.authHeader || '',
+            'Content-Type': 'application/json'
+          }
+        })
+      )
+    ]
+
+    if (requests.length > 0) {
+      const responses = await Promise.all(requests)
+      const failed = responses.find(r => !r.ok)
+      if (failed) {
+        const msg = await failed.text().catch(() => '')
+        throw new Error(`Error al actualizar permisos del rol: ${failed.status} ${msg}`)
+      }
     }
-    
+
     await fetchRoles()
     closeRolePermissionsModal()
   } catch (err) {

@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://boost.pitahayasoft.com/api/v1'
+export const API_BASE_URL = ((import.meta as any)?.env?.VITE_API_BASE_URL as string) || 'https://boost.pitahayasoft.com/api/v1'
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -16,7 +16,34 @@ export const API_ENDPOINTS = {
     REQUESTS_STATUS: `${API_BASE_URL}/crm/requests-information/status`,
     REQUESTS_SUMMARY: `${API_BASE_URL}/crm/requests-information/summary`,
     QUOTATIONS: `${API_BASE_URL}/crm/quotations`,
-  }
+  },
+  // RBAC endpoints aligned with Bouncer-style routes
+  RBAC: {
+    // CRUD
+    ROLES: `${API_BASE_URL}/auth/roles`,
+    ABILITIES: `${API_BASE_URL}/auth/abilities`,
+
+    // Assignments
+    ASSIGN: {
+      // Users ↔ Roles
+      userRole: (userId: string | number, roleId: string | number) =>
+        `${API_BASE_URL}/auth/users/${userId}/roles/${roleId}`,
+
+      // Roles ↔ Abilities
+      roleAbility: (roleId: string | number, abilityId: string | number) =>
+        `${API_BASE_URL}/auth/roles/${roleId}/abilities/${abilityId}`,
+
+      // Users ↔ Abilities
+      userAbility: (userId: string | number, abilityId: string | number) =>
+        `${API_BASE_URL}/auth/users/${userId}/abilities/${abilityId}`,
+    },
+
+    // Helpers
+    GRANTS: {
+      user: (userId: string | number) => `${API_BASE_URL}/auth/users/${userId}/grants`,
+      role: (roleId: string | number) => `${API_BASE_URL}/auth/roles/${roleId}/grants`,
+    },
+  },
 } as const
 
 // API Helper functions
