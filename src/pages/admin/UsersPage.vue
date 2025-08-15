@@ -21,7 +21,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Organización</label>
           <select
             v-model="selectedOrgId"
-            @change="fetchUsers"
+            @change="handleOrgChange"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todas las organizaciones</option>
@@ -57,7 +57,7 @@
       <div v-else-if="error" class="p-6 text-center text-red-600">
         <p>Error al cargar usuarios: {{ error }}</p>
         <button 
-          @click="fetchUsers"
+          @click="fetchUsers(paginationMeta.current_page)"
           class="mt-2 text-blue-600 hover:text-blue-800 underline"
         >
           Reintentar
@@ -158,6 +158,56 @@
           </tbody>
         </table>
       </div>
+      
+      <!-- Pagination -->
+      <div v-if="paginationMeta.last_page > 1" class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Mostrando {{ ((paginationMeta.current_page - 1) * paginationMeta.per_page) + 1 }} a
+            {{ Math.min(paginationMeta.current_page * paginationMeta.per_page, paginationMeta.total) }}
+            de {{ paginationMeta.total }} usuarios
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <!-- Previous button -->
+            <button
+              @click="goToPage(paginationMeta.current_page - 1)"
+              :disabled="paginationMeta.current_page <= 1"
+              class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            
+            <!-- Page numbers -->
+            <div class="flex space-x-1">
+              <template v-for="page in getVisiblePages()" :key="page">
+                <button
+                  v-if="page !== '...'"
+                  @click="goToPage(page as number)"
+                  :class="[
+                    'px-3 py-2 text-sm font-medium rounded-md',
+                    page === paginationMeta.current_page
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                  ]"
+                >
+                  {{ page }}
+                </button>
+                <span v-else class="px-3 py-2 text-sm text-gray-500">...</span>
+              </template>
+            </div>
+            
+            <!-- Next button -->
+            <button
+              @click="goToPage(paginationMeta.current_page + 1)"
+              :disabled="paginationMeta.current_page >= paginationMeta.last_page"
+              class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Create/Edit User Modal -->
@@ -201,7 +251,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Organización</label>
             <select
-              v-model="userFormData.org_id"
+              v-model="userFormData.organization_id"
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -312,6 +362,17 @@ interface Organization {
   name: string
 }
 
+interface PaginationMeta {
+  total: number
+  per_page: number
+  current_page: number
+  last_page: number
+  sort: string
+  dir: string
+  search: string
+  include: string[]
+}
+
 const authStore = useAuthStore()
 
 const users = ref<User[]>([])
@@ -323,6 +384,18 @@ const saving = ref(false)
 const selectedOrgId = ref('')
 const searchTerm = ref('')
 
+// Pagination state
+const paginationMeta = ref<PaginationMeta>({
+  total: 0,
+  per_page: 25,
+  current_page: 1,
+  last_page: 1,
+  sort: 'id',
+  dir: 'desc',
+  search: '',
+  include: []
+})
+
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showRolesModal = ref(false)
@@ -333,7 +406,7 @@ const userFormData = ref({
   name: '',
   email: '',
   password: '',
-  org_id: '',
+  organization_id: '',
   active: true
 })
 
@@ -347,7 +420,8 @@ const debouncedSearch = () => {
     clearTimeout(searchTimeout)
   }
   searchTimeout = setTimeout(() => {
-    fetchUsers()
+    paginationMeta.value.current_page = 1 // Reset to first page on search
+    fetchUsers(1)
   }, 500)
 }
 
@@ -369,14 +443,16 @@ const fetchOrganizations = async () => {
   }
 }
 
-const fetchUsers = async () => {
+const fetchUsers = async (page: number = 1) => {
   loading.value = true
   error.value = null
   
   try {
     const params = new URLSearchParams()
-    if (selectedOrgId.value) params.append('org_id', selectedOrgId.value)
+    if (selectedOrgId.value) params.append('organization_id', selectedOrgId.value)
     if (searchTerm.value) params.append('search', searchTerm.value)
+    params.append('page', page.toString())
+    params.append('per_page', paginationMeta.value.per_page.toString())
     
     const url = `https://boost.pitahayasoft.com/api/v1/auth/users${params.toString() ? '?' + params.toString() : ''}`
     
@@ -393,6 +469,14 @@ const fetchUsers = async () => {
     
     const data = await response.json()
     users.value = data.data || data
+    
+    // Update pagination metadata
+    if (data.meta) {
+      paginationMeta.value = {
+        ...paginationMeta.value,
+        ...data.meta
+      }
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error desconocido'
   } finally {
@@ -423,7 +507,7 @@ const saveUser = async () => {
       throw new Error('Error al guardar usuario')
     }
     
-    await fetchUsers()
+    await fetchUsers(paginationMeta.value.current_page)
     closeUserModal()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al guardar'
@@ -438,7 +522,7 @@ const editUser = (user: User) => {
     name: user.name,
     email: user.email,
     password: '',
-    org_id: user.organization?.id || '',
+    organization_id: user.organization?.id || '',
     active: user.active
   }
   showEditModal.value = true
@@ -462,7 +546,7 @@ const deleteUser = async (user: User) => {
       throw new Error('Error al eliminar usuario')
     }
     
-    await fetchUsers()
+    await fetchUsers(paginationMeta.value.current_page)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al eliminar'
   }
@@ -493,7 +577,7 @@ const saveUserRoles = async () => {
       throw new Error('Error al actualizar roles')
     }
     
-    await fetchUsers()
+    await fetchUsers(paginationMeta.value.current_page)
     closeRolesModal()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al actualizar roles'
@@ -510,7 +594,7 @@ const closeUserModal = () => {
     name: '',
     email: '',
     password: '',
-    org_id: '',
+    organization_id: '',
     active: true
   }
 }
@@ -527,6 +611,63 @@ const formatDate = (dateString: string) => {
     month: 'short',
     day: 'numeric'
   })
+}
+
+// Pagination functions
+const handleOrgChange = () => {
+  paginationMeta.value.current_page = 1
+  fetchUsers(1)
+}
+
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= paginationMeta.value.last_page) {
+    paginationMeta.value.current_page = page
+    fetchUsers(page)
+  }
+}
+
+const getVisiblePages = (): (number | string)[] => {
+  const current = paginationMeta.value.current_page
+  const last = paginationMeta.value.last_page
+  const pages: (number | string)[] = []
+  
+  if (last <= 7) {
+    // Show all pages if 7 or fewer
+    for (let i = 1; i <= last; i++) {
+      pages.push(i)
+    }
+  } else {
+    // Always show first page
+    pages.push(1)
+    
+    if (current <= 4) {
+      // Show pages 2-5 and ellipsis
+      for (let i = 2; i <= 5; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+    } else if (current >= last - 3) {
+      // Show ellipsis and last 4 pages
+      pages.push('...')
+      for (let i = last - 4; i <= last - 1; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Show ellipsis, current-1, current, current+1, ellipsis
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+    }
+    
+    // Always show last page (if not already shown)
+    if (last > 1) {
+      pages.push(last)
+    }
+  }
+  
+  return pages
 }
 
 onMounted(() => {
