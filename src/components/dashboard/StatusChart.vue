@@ -8,33 +8,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { Chart, ChartConfiguration, registerables } from 'chart.js'
-import { RequestStatus } from '../../types'
+import { useStatusStore } from '../../stores/status'
 
 Chart.register(...registerables)
 
 interface Props {
-  data: Record<RequestStatus, number>
+  data: Record<string, number>
 }
 
 const props = defineProps<Props>()
 const chartCanvas = ref<HTMLCanvasElement>()
 let chartInstance: Chart | null = null
+const statusStore = useStatusStore()
 
-const statusColors = {
-  pending: '#F59E0B',
-  in_progress: '#3B82F6',
-  completed: '#10B981',
-  cancelled: '#EF4444'
-}
-
-const statusLabels = {
-  pending: 'Pendiente',
-  in_progress: 'En Progreso',
-  completed: 'Completado',
-  cancelled: 'Cancelado'
-}
+// Generate colors and labels dynamically from status store
+const chartData = computed(() => {
+  return Object.entries(props.data)
+    .filter(([_, count]) => count > 0) // Only show statuses with data
+    .map(([statusCode, count]) => {
+      const status = statusStore.statuses.find(s => s.name === statusCode)
+      return {
+        label: status?.label || statusCode,
+        data: count,
+        backgroundColor: status?.color || '#6B7280',
+        borderColor: status?.color || '#6B7280'
+      }
+    })
+})
 
 const createChart = () => {
   if (!chartCanvas.value) return
@@ -42,22 +44,16 @@ const createChart = () => {
   const ctx = chartCanvas.value.getContext('2d')
   if (!ctx) return
 
-  const chartData = Object.entries(props.data).map(([status, count]) => ({
-    label: statusLabels[status as RequestStatus],
-    data: count,
-    backgroundColor: statusColors[status as RequestStatus],
-    borderColor: statusColors[status as RequestStatus],
-    borderWidth: 2
-  }))
+  const data = chartData.value
 
   const config: ChartConfiguration = {
     type: 'doughnut',
     data: {
-      labels: chartData.map(item => item.label),
+      labels: data.map(item => item.label),
       datasets: [{
-        data: chartData.map(item => item.data),
-        backgroundColor: chartData.map(item => item.backgroundColor),
-        borderColor: chartData.map(item => item.borderColor),
+        data: data.map(item => item.data),
+        backgroundColor: data.map(item => item.backgroundColor),
+        borderColor: data.map(item => item.borderColor),
         borderWidth: 2
       }]
     },
@@ -85,15 +81,12 @@ const createChart = () => {
 const updateChart = () => {
   if (!chartInstance) return
 
-  const chartData = Object.entries(props.data).map(([status, count]) => ({
-    label: statusLabels[status as RequestStatus],
-    data: count,
-    backgroundColor: statusColors[status as RequestStatus]
-  }))
+  const data = chartData.value
 
-  chartInstance.data.labels = chartData.map(item => item.label)
-  chartInstance.data.datasets[0].data = chartData.map(item => item.data)
-  chartInstance.data.datasets[0].backgroundColor = chartData.map(item => item.backgroundColor)
+  chartInstance.data.labels = data.map(item => item.label)
+  chartInstance.data.datasets[0].data = data.map(item => item.data)
+  chartInstance.data.datasets[0].backgroundColor = data.map(item => item.backgroundColor)
+  chartInstance.data.datasets[0].borderColor = data.map(item => item.borderColor)
   chartInstance.update()
 }
 
@@ -102,6 +95,10 @@ onMounted(() => {
 })
 
 watch(() => props.data, () => {
+  updateChart()
+}, { deep: true })
+
+watch(() => chartData.value, () => {
   updateChart()
 }, { deep: true })
 </script>

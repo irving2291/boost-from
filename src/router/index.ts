@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/test-dashboard',
+    name: 'TestDashboard',
+    component: () => import('../pages/TestDashboardPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../pages/DashboardPage.vue'),
@@ -53,6 +59,12 @@ const routes: RouteRecordRaw[] = [
     path: '/analytics',
     name: 'Analytics',
     component: () => import('../pages/AnalyticsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/assignees',
+    name: 'Assignees',
+    component: () => import('../pages/AssigneesPage.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -101,6 +113,30 @@ const routes: RouteRecordRaw[] = [
     path: '/chat/:conversationId',
     name: 'ChatConversation',
     component: () => import('../pages/ChatPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/accounts',
+    name: 'Accounts',
+    component: () => import('../pages/AccountsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/accounts/new',
+    name: 'AccountCreate',
+    component: () => import('../pages/AccountCreatePage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/accounts/:id',
+    name: 'AccountDetails',
+    component: () => import('../pages/AccountDetailsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/accounts/:id/edit',
+    name: 'AccountEdit',
+    component: () => import('../pages/AccountEditPage.vue'),
     meta: { requiresAuth: true }
   }
 ]

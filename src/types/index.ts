@@ -300,3 +300,279 @@ export interface MetaConfig {
   facebook_enabled?: boolean;
   instagram_enabled?: boolean;
 }
+
+// Assignee Management Types
+export interface Assignee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  active: boolean;
+  role: string;
+  department?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssigneeStats {
+  assigneeId: string;
+  assignee: Assignee;
+  totalRequests: number;
+  completedRequests: number;
+  pendingRequests: number;
+  conversionRate: number;
+  avgResponseTime: number; // in hours
+  avgCloseTime: number; // in days
+}
+
+export interface AssignmentRule {
+  id: string;
+  name: string;
+  description?: string;
+  active: boolean;
+  priority: number;
+  conditions: AssignmentCondition[];
+  assignmentType: 'round_robin' | 'load_balanced' | 'skill_based' | 'manual';
+  assigneeIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssignmentCondition {
+  field: 'source' | 'priority' | 'amount' | 'location' | 'time' | 'tags';
+  operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'in_range';
+  value: string | number | string[];
+}
+
+export interface RequestReassignment {
+  requestId: string;
+  fromAssigneeId?: string;
+  toAssigneeId: string;
+  reason?: string;
+  reassignedBy: string;
+  reassignedAt: string;
+}
+
+export interface AssigneeFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  assigneeIds?: string[];
+  status?: string[];
+  department?: string;
+}
+
+export interface AssigneeMetrics {
+  totalAssignees: number;
+  activeAssignees: number;
+  avgConversionRate: number;
+  totalRequestsAssigned: number;
+  unassignedRequests: number;
+}
+
+// Socket.IO Types for real-time updates
+export interface SocketEvent {
+  type: 'request_assigned' | 'request_status_changed' | 'assignee_stats_updated' | 'new_request';
+  data: any;
+  timestamp: string;
+}
+
+export interface RealTimeStats {
+  assigneeId: string;
+  newRequests: number;
+  completedToday: number;
+  responseTime: number;
+  lastActivity: string;
+}
+
+// Account Management Types - Extended for the new accounts section
+export interface Account {
+  id: string;
+  type: 'person' | 'company';
+  status: 'client' | 'prospect';
+  
+  // Basic Information
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  
+  // Additional Information
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
+  industry?: string;
+  
+  // CRM Data
+  source?: string;
+  tags: string[];
+  priority: 'low' | 'medium' | 'high';
+  
+  // Relationship Management
+  assignedTo?: string; // Current responsible person
+  assignedToName?: string;
+  
+  // Business Metrics
+  totalValue: number;
+  potentialValue?: number;
+  lastContactDate?: string;
+  nextFollowUpDate?: string;
+  
+  // Related Data Counts
+  requestsCount: number;
+  quotationsCount: number;
+  conversationsCount: number;
+  
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  convertedAt?: string; // When prospect became client
+}
+
+export interface AccountRequest {
+  id: string;
+  accountId: string;
+  subject: string;
+  description?: string;
+  status: RequestStatus;
+  priority: 'low' | 'medium' | 'high';
+  assignedTo?: string;
+  assignedToName?: string;
+  amount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountQuotation {
+  id: string;
+  accountId: string;
+  requestId?: string;
+  title: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+  assignedTo?: string;
+  assignedToName?: string;
+  validUntil?: string;
+  sentAt?: string;
+  respondedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountConversation {
+  id: string;
+  accountId: string;
+  platform: 'whatsapp' | 'instagram' | 'facebook' | 'telegram' | 'email' | 'sms' | 'phone';
+  subject?: string;
+  lastMessage?: string;
+  lastActivity: string;
+  status: 'active' | 'closed' | 'archived';
+  assignedTo?: string;
+  assignedToName?: string;
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountNote {
+  id: string;
+  accountId: string;
+  content: string;
+  type: 'general' | 'call' | 'meeting' | 'email' | 'follow_up';
+  author: string;
+  authorName: string;
+  isPrivate: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountActivity {
+  id: string;
+  accountId: string;
+  type: 'created' | 'updated' | 'status_changed' | 'assigned' | 'note_added' | 'request_created' | 'quotation_sent' | 'conversation_started';
+  description: string;
+  metadata?: Record<string, any>;
+  performedBy: string;
+  performedByName: string;
+  createdAt: string;
+}
+
+export interface AccountFilters {
+  search?: string;
+  type?: 'person' | 'company' | 'all';
+  status?: 'client' | 'prospect' | 'all';
+  assignedTo?: string[];
+  tags?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  source?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  hasRequests?: boolean;
+  hasQuotations?: boolean;
+  hasConversations?: boolean;
+}
+
+export interface AccountStats {
+  totalAccounts: number;
+  totalClients: number;
+  totalProspects: number;
+  conversionRate: number;
+  totalValue: number;
+  potentialValue: number;
+  byType: {
+    person: number;
+    company: number;
+  };
+  byPriority: {
+    low: number;
+    medium: number;
+    high: number;
+  };
+  byAssignee: Record<string, number>;
+  recentActivity: AccountActivity[];
+}
+
+export interface CreateAccountRequest {
+  type: 'person' | 'company';
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  email: string;
+  phone: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
+  industry?: string;
+  source?: string;
+  tags?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string;
+  potentialValue?: number;
+  notes?: string;
+}
+
+export interface UpdateAccountRequest {
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
+  industry?: string;
+  source?: string;
+  tags?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string;
+  potentialValue?: number;
+  status?: 'client' | 'prospect';
+}

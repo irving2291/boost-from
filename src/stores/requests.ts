@@ -59,32 +59,99 @@ export const useRequestsStore = defineStore('requests', () => {
     return grouped
   })
 
-  const summary = computed((): RequestsSummary => {
-    const byStatus: Record<RequestStatus, number> = {
-      NEW: 0,
-      IN_PROGRESS: 0,
-      RECONTACT: 0,
-      WON: 0,
-      LOST: 0,
-      CLOSE: 0
-    }
+  const summary = computed(() => {
+    const statusStore = useStatusStore()
+    const byStatus: Record<string, number> = {}
+    
+    // Initialize counts for all available statuses
+    statusStore.statuses.forEach(status => {
+      byStatus[status.name] = 0
+    })
 
+    // Count requests by their actual status
     requests.value.forEach(request => {
-      // Use legacy mapping for summary
-      const legacyStatus = mapStatusCodeToLegacy(request.status.code)
-      byStatus[legacyStatus]++
+      const statusCode = request.status.code
+      if (byStatus[statusCode] !== undefined) {
+        byStatus[statusCode]++
+      } else {
+        // Handle unknown statuses
+        if (!byStatus['UNKNOWN']) byStatus['UNKNOWN'] = 0
+        byStatus['UNKNOWN']++
+      }
     })
 
     const total = requests.value.length
-    const won = byStatus.WON
+    
+    // Calculate conversion rate based on "won" or "ganados" status
+    const wonStatuses = statusStore.statuses.filter(s =>
+      s.name.toLowerCase().includes('ganado') ||
+      s.name.toLowerCase().includes('won') ||
+      s.name.toLowerCase().includes('cerrado')
+    )
+    const won = wonStatuses.reduce((sum, status) => sum + (byStatus[status.name] || 0), 0)
     const conversionRate = total > 0 ? won / total : 0
 
     return {
       byStatus,
       total,
       conversionRate,
-      avgTimeToClose: 14 // Mock value
+      avgTimeToClose: 14 // Mock value - could be calculated from actual data
     }
+  })
+
+  // New computed properties for dashboard metrics
+  const newToday = computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    return requests.value.filter(request => {
+      const createdDate = new Date(request.createdAt)
+      createdDate.setHours(0, 0, 0, 0)
+      return createdDate.getTime() === today.getTime()
+    }).length
+  })
+
+  const pendingRequests = computed(() => {
+    const statusStore = useStatusStore()
+    const pendingStatuses = statusStore.statuses.filter(s =>
+      s.name.toLowerCase().includes('nuevo') ||
+      s.name.toLowerCase().includes('new') ||
+      s.name.toLowerCase().includes('pendiente') ||
+      s.name.toLowerCase().includes('pending')
+    )
+    
+    return requests.value.filter(request =>
+      pendingStatuses.some(status => status.name === request.status.code)
+    ).length
+  })
+
+  const inProgressRequests = computed(() => {
+    const statusStore = useStatusStore()
+    const inProgressStatuses = statusStore.statuses.filter(s =>
+      s.name.toLowerCase().includes('contactado') ||
+      s.name.toLowerCase().includes('calificado') ||
+      s.name.toLowerCase().includes('propuesta') ||
+      s.name.toLowerCase().includes('negociacion') ||
+      s.name.toLowerCase().includes('progress')
+    )
+    
+    return requests.value.filter(request =>
+      inProgressStatuses.some(status => status.name === request.status.code)
+    ).length
+  })
+
+  const completedRequests = computed(() => {
+    const statusStore = useStatusStore()
+    const completedStatuses = statusStore.statuses.filter(s =>
+      s.name.toLowerCase().includes('ganado') ||
+      s.name.toLowerCase().includes('won') ||
+      s.name.toLowerCase().includes('cerrado') ||
+      s.name.toLowerCase().includes('completed')
+    )
+    
+    return requests.value.filter(request =>
+      completedStatuses.some(status => status.name === request.status.code)
+    ).length
   })
 
   // Helper function to map status codes to legacy status
@@ -101,7 +168,7 @@ export const useRequestsStore = defineStore('requests', () => {
   }
 
   // Actions
-  const fetchRequests = async (statusCode?: string) => {
+  const fetchRequests = async () => {
     loading.value = true
     error.value = null
     
@@ -109,18 +176,12 @@ export const useRequestsStore = defineStore('requests', () => {
       const authStore = useAuthStore()
       const statusStore = useStatusStore()
       
-      // Build URL with status query parameters and limit
+      // Build URL with limit parameter only
       let url = API_ENDPOINTS.CRM.REQUESTS
       const params = new URLSearchParams()
       
       // Add limit parameter
       params.append('limit', '999')
-      
-      // Add status parameters
-      const statusCodes = statusCode ? [statusCode] : statusStore.statuses.map((s: any) => s.name)
-      if (statusCodes.length > 0) {
-        statusCodes.forEach((code: string) => params.append('status', code))
-      }
       
       url += `?${params.toString()}`
       
@@ -151,7 +212,8 @@ export const useRequestsStore = defineStore('requests', () => {
   }
 
   const fetchRequestsByStatus = async (statusCode: string) => {
-    return fetchRequests(statusCode)
+    // Status parameter is no longer needed, just fetch all requests
+    return fetchRequests()
   }
 
   const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
@@ -224,6 +286,10 @@ export const useRequestsStore = defineStore('requests', () => {
     requestsByStatus,
     requestsByLegacyStatus,
     summary,
+    newToday,
+    pendingRequests,
+    inProgressRequests,
+    completedRequests,
     // Actions
     fetchRequests,
     fetchRequestsByStatus,

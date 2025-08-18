@@ -3,7 +3,7 @@
     <div class="space-y-6">
       <!-- Page Header -->
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <h1 class="text-2xl font-bold text-slate-900">Dashboard (Test Mode)</h1>
         <p class="text-slate-600 mt-1">
           Bienvenido al sistema CRM. Aquí tienes un resumen de tu actividad.
         </p>
@@ -94,6 +94,21 @@
           </p>
         </div>
       </div>
+
+      <!-- Debug Info -->
+      <div class="bg-gray-100 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold mb-2">Debug Info:</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h4 class="font-medium">Requests Summary:</h4>
+            <pre class="bg-white p-2 rounded mt-1">{{ JSON.stringify(summary, null, 2) }}</pre>
+          </div>
+          <div>
+            <h4 class="font-medium">Available Statuses:</h4>
+            <pre class="bg-white p-2 rounded mt-1">{{ JSON.stringify(statusStore.statuses, null, 2) }}</pre>
+          </div>
+        </div>
+      </div>
     </div>
   </Layout>
 </template>
@@ -118,10 +133,83 @@ const pendingRequests = computed(() => requestsStore.pendingRequests)
 const inProgressRequests = computed(() => requestsStore.inProgressRequests)
 const completedRequests = computed(() => requestsStore.completedRequests)
 
-// Load data on component mount
+// Add some mock data for testing
 onMounted(async () => {
+  // Load statuses first
   await statusStore.fetchStatuses()
-  await requestsStore.fetchRequests()
+  
+  // Add some mock requests for testing
+  const mockRequests = [
+    {
+      id: '1',
+      fistName: 'Juan',
+      lastName: 'Pérez',
+      email: 'juan@example.com',
+      phone: '+593987654321',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: {
+        id: '1',
+        code: 'NUEVOS',
+        name: 'Nuevos',
+        organization: 'test',
+        default: true
+      }
+    },
+    {
+      id: '2',
+      fistName: 'María',
+      lastName: 'García',
+      email: 'maria@example.com',
+      phone: '+593987654322',
+      createdAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+      updatedAt: new Date().toISOString(),
+      status: {
+        id: '2',
+        code: 'CONTACTADOS',
+        name: 'Contactados',
+        organization: 'test',
+        default: false
+      }
+    },
+    {
+      id: '3',
+      fistName: 'Carlos',
+      lastName: 'López',
+      email: 'carlos@example.com',
+      phone: '+593987654323',
+      createdAt: new Date().toISOString(), // Today
+      updatedAt: new Date().toISOString(),
+      status: {
+        id: '3',
+        code: 'GANADOS',
+        name: 'Ganados',
+        organization: 'test',
+        default: false
+      }
+    },
+    {
+      id: '4',
+      fistName: 'Ana',
+      lastName: 'Martínez',
+      email: 'ana@example.com',
+      phone: '+593987654324',
+      createdAt: new Date().toISOString(), // Today
+      updatedAt: new Date().toISOString(),
+      status: {
+        id: '1',
+        code: 'NUEVOS',
+        name: 'Nuevos',
+        organization: 'test',
+        default: true
+      }
+    }
+  ]
+  
+  // Add mock requests to the store
+  for (const mockRequest of mockRequests) {
+    await requestsStore.addRequest(mockRequest)
+  }
 })
 
 const recentActivities = computed(() => [

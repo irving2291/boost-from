@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhList } from '@phosphor-icons/vue'
+import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhList, PhUserCheck, PhAddressBook } from '@phosphor-icons/vue'
 import Badge from '../ui/Badge.vue'
 import { cn } from '../../utils'
 import { useRequestsStore } from '../../stores/requests'
@@ -57,10 +57,22 @@ const allNavigationItems = computed((): NavigationItem[] => [
         badge: activeRequestsCount.value,
       },
       {
+        id: 'assignees',
+        label: 'Responsables',
+        icon: PhUserCheck,
+        path: '/assignees',
+      },
+      {
         id: 'quotations',
         label: 'Cotizaciones',
         icon: PhFileText,
         path: '/quotations',
+      },
+      {
+        id: 'accounts',
+        label: 'Cuentas',
+        icon: PhAddressBook,
+        path: '/accounts',
       },
       {
         id: 'chat',
