@@ -17,7 +17,7 @@
               <h2 class="text-2xl font-bold text-charcoal">
                 Cotización #{{ quotation.id?.slice(-6) || 'N/A' }}
               </h2>
-              <p class="text-slate-600">{{ getRequestInfo(quotation.requestInformationId) }}</p>
+              <p class="text-slate-600">{{ getRequestInfo(quotation.request_information_id) }}</p>
             </div>
           </div>
           <button
@@ -60,14 +60,14 @@
                   <PhCalendar :size="20" class="text-slate-500" />
                   <div>
                     <p class="text-sm text-slate-600">Creada</p>
-                    <p class="text-slate-800">{{ formatDate(quotation.createdAt) }}</p>
+                    <p class="text-slate-800">{{ formatDate(quotation.created_at) }}</p>
                   </div>
                 </div>
-                <div v-if="quotation.updatedAt" class="flex items-center space-x-3">
+                <div v-if="quotation.updated_at" class="flex items-center space-x-3">
                   <PhClock :size="20" class="text-slate-500" />
                   <div>
                     <p class="text-sm text-slate-600">Última actualización</p>
-                    <p class="text-slate-800">{{ formatDate(quotation.updatedAt) }}</p>
+                    <p class="text-slate-800">{{ formatDate(quotation.updated_at) }}</p>
                   </div>
                 </div>
               </div>
@@ -223,7 +223,7 @@ const loading = ref(false)
 
 // Computed
 const requestInfo = computed(() => {
-  return requestsStore.requests.find(r => r.id === props.quotation.requestInformationId)
+  return requestsStore.requests.find(r => r.id === props.quotation.request_information_id)
 })
 
 // Methods
@@ -231,9 +231,14 @@ const closeModal = () => {
   emit('close')
 }
 
-const getRequestInfo = (requestId: string) => {
+const getRequestInfo = (requestId: string | null) => {
+  if (!requestId) return 'Sin request asociado'
   const request = requestsStore.requests.find(r => r.id === requestId)
-  return request ? `${request.clientName} - ${request.subject}` : `Request #${requestId.slice(-6)}`
+  if (request) {
+    const fullName = `${request.first_name} ${request.last_name || ''}`.trim()
+    return fullName || `Request #${requestId.slice(-6)}`
+  }
+  return `Request #${requestId.slice(-6)}`
 }
 
 const calculateTotal = (details: QuotationDetail[]) => {

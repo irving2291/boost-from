@@ -121,7 +121,7 @@
                   #{{ quotation.id?.slice(-6) || 'N/A' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                  {{ getRequestInfo(quotation.requestInformationId) }}
+                  {{ getRequestInfo(quotation.request_information_id) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                   ${{ calculateTotal(quotation.details).toLocaleString() }}
@@ -132,7 +132,7 @@
                   </Badge>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                  {{ formatDate(quotation.createdAt) }}
+                  {{ formatDate(quotation.created_at) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex items-center justify-end space-x-2">
@@ -186,7 +186,7 @@
                 Request ID
               </label>
               <input
-                v-model="newQuotation.requestInformationId"
+                v-model="newQuotation.request_information_id"
                 type="text"
                 required
                 class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -304,8 +304,8 @@ const requestsStore = useRequestsStore()
 const showCreateModal = ref(false)
 const showDetailsModal = ref(false)
 const selectedQuotation = ref<Quotation | null>(null)
-const newQuotation = ref<CreateQuotationRequest>({
-  requestInformationId: '',
+const newQuotation = ref({
+  request_information_id: '',
   details: [
     {
       description: '',
@@ -314,7 +314,7 @@ const newQuotation = ref<CreateQuotationRequest>({
       total: 0
     }
   ],
-  status: 'creating'
+  status_id: '' // Will be set to the "creating" status ID
 })
 
 // Computed properties
@@ -328,9 +328,14 @@ const fetchQuotations = async () => {
   await quotationsStore.fetchQuotations()
 }
 
-const getRequestInfo = (requestId: string) => {
+const getRequestInfo = (requestId: string | null) => {
+  if (!requestId) return 'Sin request asociado'
   const request = requestsStore.requests.find(r => r.id === requestId)
-  return request ? `${request.clientName} - ${request.subject}` : `Request #${requestId.slice(-6)}`
+  if (request) {
+    const fullName = `${request.first_name} ${request.last_name || ''}`.trim()
+    return fullName || `Request #${requestId.slice(-6)}`
+  }
+  return `Request #${requestId.slice(-6)}`
 }
 
 const calculateTotal = (details: QuotationDetail[]) => {
@@ -396,7 +401,7 @@ const handleCreateQuotation = async () => {
     showCreateModal.value = false
     // Reset form
     newQuotation.value = {
-      requestInformationId: '',
+      request_information_id: '',
       details: [
         {
           description: '',
@@ -405,7 +410,7 @@ const handleCreateQuotation = async () => {
           total: 0
         }
       ],
-      status: 'creating'
+      status_id: '' // Will be set to the "creating" status ID
     }
   }
 }

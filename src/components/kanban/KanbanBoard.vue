@@ -24,7 +24,7 @@
           v-for="(status, index) in sortedStatuses"
           :key="status.id"
           :status="status"
-          :requests="getRequestsByStatusName(status.name)"
+          :requests="getRequestsByStatusCode(status.code)"
           :can-delete="canDeleteStatus(status)"
           @update-status="handleStatusUpdate"
           @add-request="handleAddRequestForStatus"
@@ -79,10 +79,10 @@
 
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">
-                Etiqueta
+                Nombre
               </label>
               <input
-                v-model="newStatus.label"
+                v-model="newStatus.name"
                 type="text"
                 required
                 class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -111,7 +111,7 @@
 
             <div class="flex items-center">
               <input
-                v-model="newStatus.isDefault"
+                v-model="newStatus.default"
                 type="checkbox"
                 id="isDefault"
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
@@ -159,7 +159,7 @@ import KanbanColumn from './KanbanColumn.vue'
 import RequestDetailsModal from './RequestDetailsModal.vue'
 import { useRequestsStore } from '../../stores/requests'
 import { useStatusStore } from '../../stores/status'
-import type { RequestStatus, StatusDefinition, RequestInformation } from '../../types'
+import type { RequestInformation, State } from '../../types/supabase'
 
 const requestsStore = useRequestsStore()
 const statusStore = useStatusStore()
@@ -167,9 +167,9 @@ const statusStore = useStatusStore()
 const showAddStatusModal = ref(false)
 const newStatus = ref({
   code: '',
-  label: '',
-  color: '#3B82F6',
-  isDefault: false
+  name: '',
+  entity_type: 'request_information',
+  default: false
 })
 
 // Modal state
@@ -178,17 +178,17 @@ const selectedRequest = ref<RequestInformation | null>(null)
 
 // Drag and drop state
 const draggedColumnIndex = ref<number | null>(null)
-const draggedStatus = ref<StatusDefinition | null>(null)
+const draggedStatus = ref<State | null>(null)
 
 const sortedStatuses = computed(() => statusStore.sortedStatuses)
 
-const getRequestsByStatusName = (statusCode: string) => {
+const getRequestsByStatusCode = (statusCode: string) => {
   return requestsStore.requestsByStatus[statusCode] || []
 }
 
-const handleStatusUpdate = async (requestId: string, newStatusCode: string) => {
-  // Update the request with the new status code
-  await requestsStore.updateRequestStatus(requestId, newStatusCode)
+const handleStatusUpdate = async (requestId: string, newStatusId: string) => {
+  // Update the request with the new status ID
+  await requestsStore.updateRequestStatus(requestId, newStatusId)
 }
 
 const handleAddRequest = () => {
@@ -196,41 +196,41 @@ const handleAddRequest = () => {
   console.log('Add new lead')
 }
 
-const handleAddRequestForStatus = (status: StatusDefinition) => {
+const handleAddRequestForStatus = (status: State) => {
   // TODO: Implement add request modal for specific status
   console.log('Add request for status:', status.name)
 }
 
-const canDeleteStatus = (status: StatusDefinition): boolean => {
+const canDeleteStatus = (status: State): boolean => {
   // Can't delete if it's a default status or has requests
-  if (status.isDefault) return false
-  const requests = getRequestsByStatusName(status.name)
+  if (status.default) return false
+  const requests = getRequestsByStatusCode(status.code)
   return requests.length === 0
 }
 
-const handleDeleteStatus = async (status: StatusDefinition) => {
+const handleDeleteStatus = async (status: State) => {
   if (!canDeleteStatus(status)) {
     alert('No se puede eliminar este estado porque tiene requests asignados o es un estado por defecto.')
     return
   }
   
-  if (confirm(`¿Estás seguro de que quieres eliminar el estado "${status.label}"?`)) {
+  if (confirm(`¿Estás seguro de que quieres eliminar el estado "${status.name}"?`)) {
     await statusStore.deleteStatus(status.id)
   }
 }
 
 const handleCreateStatus = async () => {
-  if (!newStatus.value.code || !newStatus.value.label) {
+  if (!newStatus.value.code || !newStatus.value.name) {
     alert('Por favor completa todos los campos requeridos.')
     return
   }
 
   const statusData = {
-    name: newStatus.value.code,
-    label: newStatus.value.label,
-    color: newStatus.value.color,
-    order: statusStore.statuses.length + 1,
-    isDefault: newStatus.value.isDefault
+    code: newStatus.value.code,
+    name: newStatus.value.name,
+    entity_type: newStatus.value.entity_type,
+    sort: statusStore.statuses.length + 1,
+    default: newStatus.value.default
   }
 
   const result = await statusStore.createStatus(statusData)
@@ -239,15 +239,15 @@ const handleCreateStatus = async () => {
     // Reset form
     newStatus.value = {
       code: '',
-      label: '',
-      color: '#3B82F6',
-      isDefault: false
+      name: '',
+      entity_type: 'request_information',
+      default: false
     }
   }
 }
 
 // Drag and drop handlers for columns
-const handleColumnDragStart = (status: StatusDefinition, index: number) => {
+const handleColumnDragStart = (status: State, index: number) => {
   draggedColumnIndex.value = index
   draggedStatus.value = status
 }
@@ -313,7 +313,7 @@ const closeRequestModal = () => {
 
 onMounted(async () => {
   // Fetch statuses first, then requests
-  await statusStore.fetchStatuses()
+  await statusStore.fetchStatuses('request_information')
   await requestsStore.fetchRequests()
 })
 </script>

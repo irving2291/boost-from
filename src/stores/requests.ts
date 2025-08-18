@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { RequestInformation, RequestStatus, RequestsSummary } from '../types'
-import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
+import { supabase } from '../utils/supabase'
+import type { RequestInformation, RequestInformationInsert, RequestInformationUpdate, State } from '../types/supabase'
 import { useAuthStore } from './auth'
 import { useStatusStore } from './status'
 
@@ -11,49 +11,27 @@ export const useRequestsStore = defineStore('requests', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Mock data for development
-  const mockRequests: RequestInformation[] = []
-
   // Getters
   const requestsByStatus = computed(() => {
     const statusStore = useStatusStore()
     const grouped: Record<string, RequestInformation[]> = {}
     
     // Initialize groups for all available statuses
-    statusStore.statuses.forEach((status: any) => {
-      grouped[status.name] = []
+    statusStore.statuses.forEach((status: State) => {
+      grouped[status.code] = []
     })
 
     requests.value.forEach(request => {
-      // Map request status to dynamic status name using the status code
-      const statusCode = request.status.code
-      if (grouped[statusCode]) {
-        grouped[statusCode].push(request)
+      const statusCode = request.status_id
+      // Find the status by ID to get the code
+      const status = statusStore.statuses.find(s => s.id === statusCode)
+      if (status && grouped[status.code]) {
+        grouped[status.code].push(request)
       } else {
         // Fallback for unmapped statuses
         if (!grouped['UNKNOWN']) grouped['UNKNOWN'] = []
         grouped['UNKNOWN'].push(request)
       }
-    })
-
-    return grouped
-  })
-
-  // Legacy getter for backward compatibility
-  const requestsByLegacyStatus = computed(() => {
-    const grouped: Record<RequestStatus, RequestInformation[]> = {
-      NEW: [],
-      IN_PROGRESS: [],
-      RECONTACT: [],
-      WON: [],
-      LOST: [],
-      CLOSE: []
-    }
-
-    requests.value.forEach(request => {
-      // Use legacy mapping for backward compatibility
-      const legacyStatus = mapStatusCodeToLegacy(request.status.code)
-      grouped[legacyStatus].push(request)
     })
 
     return grouped
@@ -65,14 +43,14 @@ export const useRequestsStore = defineStore('requests', () => {
     
     // Initialize counts for all available statuses
     statusStore.statuses.forEach(status => {
-      byStatus[status.name] = 0
+      byStatus[status.code] = 0
     })
 
     // Count requests by their actual status
     requests.value.forEach(request => {
-      const statusCode = request.status.code
-      if (byStatus[statusCode] !== undefined) {
-        byStatus[statusCode]++
+      const status = statusStore.statuses.find(s => s.id === request.status_id)
+      if (status && byStatus[status.code] !== undefined) {
+        byStatus[status.code]++
       } else {
         // Handle unknown statuses
         if (!byStatus['UNKNOWN']) byStatus['UNKNOWN'] = 0
@@ -84,11 +62,11 @@ export const useRequestsStore = defineStore('requests', () => {
     
     // Calculate conversion rate based on "won" or "ganados" status
     const wonStatuses = statusStore.statuses.filter(s =>
-      s.name.toLowerCase().includes('ganado') ||
-      s.name.toLowerCase().includes('won') ||
-      s.name.toLowerCase().includes('cerrado')
+      s.name?.toLowerCase().includes('ganado') ||
+      s.name?.toLowerCase().includes('won') ||
+      s.name?.toLowerCase().includes('cerrado')
     )
-    const won = wonStatuses.reduce((sum, status) => sum + (byStatus[status.name] || 0), 0)
+    const won = wonStatuses.reduce((sum, status) => sum + (byStatus[status.code] || 0), 0)
     const conversionRate = total > 0 ? won / total : 0
 
     return {
@@ -105,7 +83,7 @@ export const useRequestsStore = defineStore('requests', () => {
     today.setHours(0, 0, 0, 0)
     
     return requests.value.filter(request => {
-      const createdDate = new Date(request.createdAt)
+      const createdDate = new Date(request.created_at)
       createdDate.setHours(0, 0, 0, 0)
       return createdDate.getTime() === today.getTime()
     }).length
@@ -114,58 +92,45 @@ export const useRequestsStore = defineStore('requests', () => {
   const pendingRequests = computed(() => {
     const statusStore = useStatusStore()
     const pendingStatuses = statusStore.statuses.filter(s =>
-      s.name.toLowerCase().includes('nuevo') ||
-      s.name.toLowerCase().includes('new') ||
-      s.name.toLowerCase().includes('pendiente') ||
-      s.name.toLowerCase().includes('pending')
+      s.name?.toLowerCase().includes('nuevo') ||
+      s.name?.toLowerCase().includes('new') ||
+      s.name?.toLowerCase().includes('pendiente') ||
+      s.name?.toLowerCase().includes('pending')
     )
     
     return requests.value.filter(request =>
-      pendingStatuses.some(status => status.name === request.status.code)
+      pendingStatuses.some(status => status.id === request.status_id)
     ).length
   })
 
   const inProgressRequests = computed(() => {
     const statusStore = useStatusStore()
     const inProgressStatuses = statusStore.statuses.filter(s =>
-      s.name.toLowerCase().includes('contactado') ||
-      s.name.toLowerCase().includes('calificado') ||
-      s.name.toLowerCase().includes('propuesta') ||
-      s.name.toLowerCase().includes('negociacion') ||
-      s.name.toLowerCase().includes('progress')
+      s.name?.toLowerCase().includes('contactado') ||
+      s.name?.toLowerCase().includes('calificado') ||
+      s.name?.toLowerCase().includes('propuesta') ||
+      s.name?.toLowerCase().includes('negociacion') ||
+      s.name?.toLowerCase().includes('progress')
     )
     
     return requests.value.filter(request =>
-      inProgressStatuses.some(status => status.name === request.status.code)
+      inProgressStatuses.some(status => status.id === request.status_id)
     ).length
   })
 
   const completedRequests = computed(() => {
     const statusStore = useStatusStore()
     const completedStatuses = statusStore.statuses.filter(s =>
-      s.name.toLowerCase().includes('ganado') ||
-      s.name.toLowerCase().includes('won') ||
-      s.name.toLowerCase().includes('cerrado') ||
-      s.name.toLowerCase().includes('completed')
+      s.name?.toLowerCase().includes('ganado') ||
+      s.name?.toLowerCase().includes('won') ||
+      s.name?.toLowerCase().includes('cerrado') ||
+      s.name?.toLowerCase().includes('completed')
     )
     
     return requests.value.filter(request =>
-      completedStatuses.some(status => status.name === request.status.code)
+      completedStatuses.some(status => status.id === request.status_id)
     ).length
   })
-
-  // Helper function to map status codes to legacy status
-  const mapStatusCodeToLegacy = (code: string): RequestStatus => {
-    const mapping: Record<string, RequestStatus> = {
-      'new': 'NEW',
-      'in_progress': 'IN_PROGRESS',
-      'recontact': 'RECONTACT',
-      'won': 'WON',
-      'lost': 'LOST',
-      'close': 'CLOSE'
-    }
-    return mapping[code] || 'NEW'
-  }
 
   // Actions
   const fetchRequests = async () => {
@@ -174,107 +139,218 @@ export const useRequestsStore = defineStore('requests', () => {
     
     try {
       const authStore = useAuthStore()
-      const statusStore = useStatusStore()
       
-      // Build URL with limit parameter only
-      let url = API_ENDPOINTS.CRM.REQUESTS
-      const params = new URLSearchParams()
-      
-      // Add limit parameter
-      params.append('limit', '999')
-      
-      url += `?${params.toString()}`
-      
-      const response = await fetch(url, {
-        headers: createAuthHeaders(authStore.token || undefined)
-      })
-      
-      await handleApiError(response)
-      const data = await response.json()
-      
-      // Handle API response - adjust based on actual API structure
-      if (Array.isArray(data)) {
-        requests.value = data
-      } else if (data.data && Array.isArray(data.data)) {
-        requests.value = data.data
-      } else {
-        console.warn('Unexpected API response format for requests')
-        requests.value = []
+      // Get user's organization from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authStore.user?.id)
+        .single()
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found for user')
       }
+
+      const { data, error: supabaseError } = await supabase
+        .from('request_information')
+        .select('*')
+        .eq('organization_id', profile.organization_id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(999)
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      requests.value = data || []
     } catch (err) {
-      console.error('Error fetching requests from API:', err)
+      console.error('Error fetching requests from Supabase:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching requests'
-      // Fallback to mock data on error for development
-      requests.value = mockRequests
+      requests.value = []
     } finally {
       loading.value = false
     }
   }
 
-  const fetchRequestsByStatus = async (statusCode: string) => {
-    // Status parameter is no longer needed, just fetch all requests
-    return fetchRequests()
-  }
-
-  const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
+  const fetchRequestsByStatus = async (statusId: string) => {
+    loading.value = true
+    error.value = null
+    
     try {
       const authStore = useAuthStore()
       
-      // Call API to update request status using the correct endpoint
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/${requestId}/status`, {
-        method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined),
-        body: JSON.stringify({
-          status_code: newStatusCode
-        })
-      })
+      // Get user's organization from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authStore.user?.id)
+        .single()
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found for user')
+      }
+
+      const { data, error: supabaseError } = await supabase
+        .from('request_information')
+        .select('*')
+        .eq('organization_id', profile.organization_id)
+        .eq('status_id', statusId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
       
-      await handleApiError(response)
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      requests.value = data || []
+    } catch (err) {
+      console.error('Error fetching requests by status from Supabase:', err)
+      error.value = err instanceof Error ? err.message : 'Error fetching requests'
+      requests.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updateRequestStatus = async (requestId: string, newStatusId: string) => {
+    try {
+      const authStore = useAuthStore()
+      
+      const { error: supabaseError } = await supabase
+        .from('request_information')
+        .update({
+          status_id: newStatusId,
+          updated_at: new Date().toISOString(),
+          last_user_updated: {
+            user_id: authStore.user?.id,
+            email: authStore.user?.email,
+            timestamp: new Date().toISOString()
+          }
+        })
+        .eq('id', requestId)
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
       
       // Update local state
       const request = requests.value.find(r => r.id === requestId)
       if (request) {
-        request.status = {
-          ...request.status,
-          code: newStatusCode
+        request.status_id = newStatusId
+        request.updated_at = new Date().toISOString()
+        request.last_user_updated = {
+          user_id: authStore.user?.id,
+          email: authStore.user?.email,
+          timestamp: new Date().toISOString()
         }
-        request.updatedAt = new Date().toISOString()
       }
     } catch (error) {
       console.error('Error updating request status:', error)
-      
-      // Fallback: update locally if API fails
-      const request = requests.value.find(r => r.id === requestId)
-      if (request) {
-        request.status = {
-          ...request.status,
-          code: newStatusCode
-        }
-        request.updatedAt = new Date().toISOString()
-      }
+      throw error
     }
   }
 
-  const addRequest = async (newRequest: Omit<RequestInformation, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const request: RequestInformation = {
-      ...newRequest,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+  const addRequest = async (newRequest: RequestInformationInsert) => {
+    try {
+      const authStore = useAuthStore()
+      
+      // Get user's organization from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authStore.user?.id)
+        .single()
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found for user')
+      }
+
+      const { data, error: supabaseError } = await supabase
+        .from('request_information')
+        .insert({
+          ...newRequest,
+          organization_id: profile.organization_id,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      if (data) {
+        requests.value.unshift(data)
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Error adding request:', error)
+      throw error
     }
-    requests.value.push(request)
+  }
+
+  const updateRequest = async (requestId: string, updates: RequestInformationUpdate) => {
+    try {
+      const authStore = useAuthStore()
+      
+      const { data, error: supabaseError } = await supabase
+        .from('request_information')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+          last_user_updated: {
+            user_id: authStore.user?.id,
+            email: authStore.user?.email,
+            timestamp: new Date().toISOString()
+          }
+        })
+        .eq('id', requestId)
+        .select()
+        .single()
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      // Update local state
+      const index = requests.value.findIndex(r => r.id === requestId)
+      if (index > -1 && data) {
+        requests.value[index] = data
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Error updating request:', error)
+      throw error
+    }
   }
 
   const deleteRequest = async (requestId: string) => {
-    const index = requests.value.findIndex(r => r.id === requestId)
-    if (index > -1) {
-      requests.value.splice(index, 1)
+    try {
+      // Soft delete by setting deleted_at
+      const { error: supabaseError } = await supabase
+        .from('request_information')
+        .update({
+          deleted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      // Remove from local state
+      const index = requests.value.findIndex(r => r.id === requestId)
+      if (index > -1) {
+        requests.value.splice(index, 1)
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error)
+      throw error
     }
-  }
-
-  // Initialize with mock data
-  if (requests.value.length === 0) {
-    requests.value = mockRequests
   }
 
   return {
@@ -284,7 +360,6 @@ export const useRequestsStore = defineStore('requests', () => {
     error,
     // Getters
     requestsByStatus,
-    requestsByLegacyStatus,
     summary,
     newToday,
     pendingRequests,
@@ -295,6 +370,7 @@ export const useRequestsStore = defineStore('requests', () => {
     fetchRequestsByStatus,
     updateRequestStatus,
     addRequest,
+    updateRequest,
     deleteRequest
   }
 })

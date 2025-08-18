@@ -88,7 +88,7 @@
                 >
                   <option value="">Todos los estados</option>
                   <option v-for="status in availableStatuses" :key="status.id" :value="status.name">
-                    {{ status.label }}
+                    {{ status.name }}
                   </option>
                 </select>
               </div>
@@ -126,9 +126,9 @@
                 <tr v-for="request in filteredRequests" :key="request.id" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-900">
-                      {{ request.fistName }} {{ request.lastName }}
+                      {{ request.first_name }} {{ request.last_name || '' }}
                     </div>
-                    <div class="text-sm text-gray-500">{{ request.company || 'Sin empresa' }}</div>
+                    <div class="text-sm text-gray-500">Sin empresa</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">{{ request.email }}</div>
@@ -138,20 +138,20 @@
                     <span
                       :class="[
                         'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
-                        getStatusColor(request.status.code)
+                        getStatusColor(getStatusCode(request.status_id))
                       ]"
                     >
-                      {{ request.status.name }}
+                      {{ getStatusName(request.status_id) }}
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ request.assignedTo || 'Sin asignar' }}
+                    Sin asignar
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ formatDate(request.createdAt) }}
+                    {{ formatDate(request.created_at) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ request.updatedAt ? formatDate(request.updatedAt) : '-' }}
+                    {{ request.updated_at ? formatDate(request.updated_at) : '-' }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
@@ -194,7 +194,7 @@ import Layout from '../components/layout/Layout.vue'
 import KanbanBoard from '../components/kanban/KanbanBoard.vue'
 import { useRequestsStore } from '../stores/requests'
 import { useStatusStore } from '../stores/status'
-import type { RequestInformation } from '../types'
+import type { RequestInformation } from '../types/supabase'
 
 const requestsStore = useRequestsStore()
 const statusStore = useStatusStore()
@@ -216,17 +216,16 @@ const filteredRequests = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(request =>
-      request.fistName.toLowerCase().includes(query) ||
-      request.lastName.toLowerCase().includes(query) ||
+      request.first_name.toLowerCase().includes(query) ||
+      (request.last_name && request.last_name.toLowerCase().includes(query)) ||
       request.email.toLowerCase().includes(query) ||
-      request.phone.toLowerCase().includes(query) ||
-      (request.company && request.company.toLowerCase().includes(query))
+      (request.phone && request.phone.toLowerCase().includes(query))
     )
   }
 
   // Apply status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(request => request.status.name === statusFilter.value)
+    filtered = filtered.filter(request => getStatusName(request.status_id) === statusFilter.value)
   }
 
   return filtered
@@ -236,7 +235,7 @@ const filteredRequests = computed(() => {
 const refreshData = async () => {
   await Promise.all([
     requestsStore.fetchRequests(),
-    statusStore.fetchStatuses()
+    statusStore.fetchStatuses('request_information')
   ])
 }
 
@@ -264,6 +263,16 @@ const getStatusColor = (statusCode: string) => {
   }
   
   return colorMap[statusCode] || 'bg-gray-100 text-gray-800'
+}
+
+const getStatusName = (statusId: string) => {
+  const status = statusStore.statuses.find(s => s.id === statusId)
+  return status?.name || 'Desconocido'
+}
+
+const getStatusCode = (statusId: string) => {
+  const status = statusStore.statuses.find(s => s.id === statusId)
+  return status?.code || 'unknown'
 }
 
 const viewRequestDetails = (request: RequestInformation) => {

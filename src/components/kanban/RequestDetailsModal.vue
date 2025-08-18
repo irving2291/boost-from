@@ -272,7 +272,7 @@
                         {{ getQuotationStatusLabel(quotation.status) }}
                       </span>
                       <span class="text-sm text-slate-600">
-                        {{ formatDate(quotation.createdAt || '') }}
+                        {{ formatDate(quotation.created_at || '') }}
                       </span>
                     </div>
                     <div class="text-lg font-bold text-accent-green">
@@ -346,6 +346,7 @@ import {
 } from '@phosphor-icons/vue'
 import type { RequestInformation, Quotation, QuotationDetail, CreateQuotationRequest } from '../../types'
 import { useQuotationsStore } from '../../stores/quotations'
+import { useStatusStore } from '../../stores/status'
 
 interface Props {
   isOpen: boolean
@@ -358,6 +359,7 @@ const emit = defineEmits<{
 }>()
 
 const quotationsStore = useQuotationsStore()
+const statusStore = useStatusStore()
 
 // State
 const showCreateForm = ref(false)
@@ -492,6 +494,12 @@ const handleCreateQuotation = async () => {
   // Calculate totals
   newQuotation.value.details.forEach(calculateDetailTotal)
 
+  // Set the status_id for "creating" status before creating
+  const creatingStatus = statusStore.getStatusByCode('creating')
+  if (creatingStatus) {
+    newQuotation.value.status_id = creatingStatus.id
+  }
+  
   const result = await quotationsStore.createQuotation(newQuotation.value)
   
   if (result) {

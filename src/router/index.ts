@@ -147,12 +147,12 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((to:any, _:any, next:any) => {
+router.beforeEach(async (to:any, _:any, next:any) => {
   const authStore = useAuthStore()
   
-  // Initialize auth state if not already done
-  if (!authStore.user && !authStore.token) {
-    authStore.initializeAuth()
+  // Wait a bit for auth initialization if it's in progress
+  if (!authStore.user && !authStore.session) {
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
 
   const requiresAuth = to.matched.some((record:any) => record.meta.requiresAuth)

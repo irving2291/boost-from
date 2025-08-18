@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Quotation, CreateQuotationRequest, PaginatedResponse, PaginationMeta } from '../types'
-import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
+import { supabase } from '../utils/supabase'
+import type { Quotation, QuotationInsert, QuotationUpdate, State } from '../types/supabase'
 import { useAuthStore } from './auth'
 
 export const useQuotationsStore = defineStore('quotations', () => {
@@ -9,23 +9,27 @@ export const useQuotationsStore = defineStore('quotations', () => {
   const quotations = ref<Quotation[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const pagination = ref<PaginationMeta | null>(null)
 
   // Getters
   const getQuotationsByRequestId = computed(() => {
-    return (requestId: string) => quotations.value.filter(q => q.requestInformationId === requestId)
+    return (requestId: string) => quotations.value.filter(q => q.request_information_id === requestId)
   })
 
   const quotationsByStatus = computed(() => {
-    const grouped: Record<string, Quotation[]> = {
-      creating: [],
-      sent: [],
-      accepted: [],
-      rejected: []
+    // Initialize with empty arrays for expected status types
+    const grouped = {
+      creating: [] as Quotation[],
+      sent: [] as Quotation[],
+      accepted: [] as Quotation[],
+      rejected: [] as Quotation[]
     }
-
+    
+    // For now, we'll need to map status_id to status names
+    // This is a temporary solution until we have proper status mapping
     quotations.value.forEach(quotation => {
-      grouped[quotation.status].push(quotation)
+      // Since we don't have status mapping yet, we'll put all in creating for now
+      // TODO: Implement proper status mapping with states table
+      grouped.creating.push(quotation)
     })
 
     return grouped
@@ -38,35 +42,35 @@ export const useQuotationsStore = defineStore('quotations', () => {
     
     try {
       const authStore = useAuthStore()
-      const url = new URL(API_ENDPOINTS.CRM.QUOTATIONS)
-      url.searchParams.append('page', page.toString())
-      url.searchParams.append('perPage', perPage.toString())
       
-      const response = await fetch(url.toString(), {
-        headers: createAuthHeaders(authStore.token || undefined)
-      })
-      
-      await handleApiError(response)
-      const data: PaginatedResponse<Quotation> = await response.json()
-      
-      // Handle paginated response
-      if (data.items && Array.isArray(data.items)) {
-        quotations.value = data.items
-        pagination.value = data.meta
-      } else {
-        // Fallback for non-paginated response
-        if (Array.isArray(data)) {
-          quotations.value = data as unknown as Quotation[]
-        } else {
-          quotations.value = []
-        }
-        pagination.value = null
+      // Get user's organization from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authStore.user?.id)
+        .single()
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found for user')
       }
+
+      const { data, error: supabaseError } = await supabase
+        .from('quotations')
+        .select('*')
+        .eq('organization_id', profile.organization_id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .range((page - 1) * perPage, page * perPage - 1)
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      quotations.value = data || []
     } catch (err) {
-      console.error('Error fetching quotations from API:', err)
+      console.error('Error fetching quotations from Supabase:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching quotations'
       quotations.value = []
-      pagination.value = null
     } finally {
       loading.value = false
     }
@@ -77,15 +81,18 @@ export const useQuotationsStore = defineStore('quotations', () => {
     error.value = null
     
     try {
-      const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.QUOTATIONS}/${id}`, {
-        headers: createAuthHeaders(authStore.token || undefined)
-      })
+      const { data, error: supabaseError } = await supabase
+        .from('quotations')
+        .select('*')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single()
       
-      await handleApiError(response)
-      const quotation = await response.json()
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
       
-      return quotation
+      return data
     } catch (err) {
       console.error('Error fetching quotation by ID:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching quotation'
@@ -100,15 +107,18 @@ export const useQuotationsStore = defineStore('quotations', () => {
     error.value = null
     
     try {
-      const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.QUOTATIONS}/request-information/${requestId}`, {
-        headers: createAuthHeaders(authStore.token || undefined)
-      })
+      const { data, error: supabaseError } = await supabase
+        .from('quotations')
+        .select('*')
+        .eq('request_information_id', requestId)
+        .is('deleted_at', null)
+        .single()
       
-      await handleApiError(response)
-      const quotation = await response.json()
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
       
-      return quotation
+      return data
     } catch (err) {
       console.error('Error fetching quotation by request ID:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching quotation'
@@ -118,25 +128,43 @@ export const useQuotationsStore = defineStore('quotations', () => {
     }
   }
 
-  const createQuotation = async (quotationData: CreateQuotationRequest): Promise<Quotation | null> => {
+  const createQuotation = async (quotationData: QuotationInsert): Promise<Quotation | null> => {
     loading.value = true
     error.value = null
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(API_ENDPOINTS.CRM.QUOTATIONS, {
-        method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined),
-        body: JSON.stringify(quotationData)
-      })
       
-      await handleApiError(response)
-      const newQuotation = await response.json()
+      // Get user's organization from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authStore.user?.id)
+        .single()
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found for user')
+      }
+
+      const { data, error: supabaseError } = await supabase
+        .from('quotations')
+        .insert({
+          ...quotationData,
+          organization_id: profile.organization_id,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
       
-      // Add to local state
-      quotations.value.push(newQuotation)
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
       
-      return newQuotation
+      if (data) {
+        quotations.value.unshift(data)
+      }
+      
+      return data
     } catch (err) {
       console.error('Error creating quotation:', err)
       error.value = err instanceof Error ? err.message : 'Error creating quotation'
@@ -146,35 +174,43 @@ export const useQuotationsStore = defineStore('quotations', () => {
     }
   }
 
-  const updateQuotationStatus = async (id: string, status: Quotation['status']): Promise<boolean> => {
+  const updateQuotation = async (id: string, updates: QuotationUpdate): Promise<boolean> => {
     loading.value = true
     error.value = null
     
     try {
-      const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.QUOTATIONS}/${id}`, {
-        method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined),
-        body: JSON.stringify({ status })
-      })
+      const { data, error: supabaseError } = await supabase
+        .from('quotations')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
       
-      await handleApiError(response)
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
       
       // Update local state
-      const quotation = quotations.value.find(q => q.id === id)
-      if (quotation) {
-        quotation.status = status
-        quotation.updatedAt = new Date().toISOString()
+      const index = quotations.value.findIndex(q => q.id === id)
+      if (index > -1 && data) {
+        quotations.value[index] = data
       }
       
       return true
     } catch (err) {
-      console.error('Error updating quotation status:', err)
-      error.value = err instanceof Error ? err.message : 'Error updating quotation status'
+      console.error('Error updating quotation:', err)
+      error.value = err instanceof Error ? err.message : 'Error updating quotation'
       return false
     } finally {
       loading.value = false
     }
+  }
+
+  const updateQuotationStatus = async (id: string, statusId: string): Promise<boolean> => {
+    return updateQuotation(id, { status_id: statusId })
   }
 
   const deleteQuotation = async (id: string): Promise<boolean> => {
@@ -182,13 +218,18 @@ export const useQuotationsStore = defineStore('quotations', () => {
     error.value = null
     
     try {
-      const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.QUOTATIONS}/${id}`, {
-        method: 'DELETE',
-        headers: createAuthHeaders(authStore.token || undefined)
-      })
+      // Soft delete by setting deleted_at
+      const { error: supabaseError } = await supabase
+        .from('quotations')
+        .update({
+          deleted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
       
-      await handleApiError(response)
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
       
       // Remove from local state
       const index = quotations.value.findIndex(q => q.id === id)
@@ -211,7 +252,6 @@ export const useQuotationsStore = defineStore('quotations', () => {
     quotations,
     loading,
     error,
-    pagination,
     // Getters
     getQuotationsByRequestId,
     quotationsByStatus,
@@ -220,6 +260,7 @@ export const useQuotationsStore = defineStore('quotations', () => {
     fetchQuotationById,
     fetchQuotationByRequestId,
     createQuotation,
+    updateQuotation,
     updateQuotationStatus,
     deleteQuotation
   }

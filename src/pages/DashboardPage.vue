@@ -120,7 +120,7 @@ const completedRequests = computed(() => requestsStore.completedRequests)
 
 // Load data on component mount
 onMounted(async () => {
-  await statusStore.fetchStatuses()
+  await statusStore.fetchStatuses('request_information')
   await requestsStore.fetchRequests()
 })
 

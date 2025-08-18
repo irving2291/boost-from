@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Organization } from '../types'
-import { API_ENDPOINTS } from '../utils/api'
+import { supabase } from '../utils/supabase'
+import type { Organization, OrganizationInsert, OrganizationUpdate } from '../types/supabase'
 import { useAuthStore } from './auth'
 
 export const useOrganizationsStore = defineStore('organizations', () => {
@@ -20,26 +20,24 @@ export const useOrganizationsStore = defineStore('organizations', () => {
 
   // Actions
   const fetchOrganizations = async (): Promise<void> => {
-    const authStore = useAuthStore()
     loading.value = true
     error.value = null
 
     try {
-      const response = await fetch(API_ENDPOINTS.ORGANIZATIONS.LIST, {
-        headers: {
-          'Authorization': authStore.authHeader || '',
-          'Content-Type': 'application/json'
-        }
-      })
+      const { data, error: supabaseError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('active', true)
+        .is('deleted_at', null)
+        .order('name')
 
-      if (!response.ok) {
-        throw new Error('Error al cargar organizaciones')
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
       }
 
-      const data = await response.json()
-      organizations.value = data.data || data
+      organizations.value = data || []
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Error desconocido'
+      error.value = err instanceof Error ? err.message : 'Error al cargar organizaciones'
       throw err
     } finally {
       loading.value = false
@@ -47,22 +45,20 @@ export const useOrganizationsStore = defineStore('organizations', () => {
   }
 
   const fetchOrganizationById = async (id: string): Promise<Organization | null> => {
-    const authStore = useAuthStore()
-    
     try {
-      const response = await fetch(`${API_ENDPOINTS.ORGANIZATIONS.LIST}/${id}`, {
-        headers: {
-          'Authorization': authStore.authHeader || '',
-          'Content-Type': 'application/json'
-        }
-      })
+      const { data, error: supabaseError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', id)
+        .eq('active', true)
+        .is('deleted_at', null)
+        .single()
 
-      if (!response.ok) {
-        throw new Error('Error al cargar organización')
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
       }
 
-      const data = await response.json()
-      return data.data || data
+      return data
     } catch (err) {
       console.error('Error fetching organization:', err)
       return null
@@ -95,12 +91,25 @@ export const useOrganizationsStore = defineStore('organizations', () => {
   const loadCurrentOrganizationFromToken = async () => {
     const authStore = useAuthStore()
     
-    if (!authStore.user?.org_id) {
+    // Get organization from user profile
+    if (!authStore.user?.id) {
       return
     }
 
     try {
-      const organization = await fetchOrganizationById(authStore.user.org_id)
+      // First get the user's profile to get organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authStore.user.id)
+        .single()
+
+      if (profileError || !profile?.organization_id) {
+        console.error('Error loading user profile:', profileError)
+        return
+      }
+
+      const organization = await fetchOrganizationById(profile.organization_id)
       if (organization) {
         setCurrentOrganization(organization)
       }
@@ -109,23 +118,21 @@ export const useOrganizationsStore = defineStore('organizations', () => {
     }
   }
 
-  const createOrganization = async (organizationData: Partial<Organization>): Promise<boolean> => {
-    const authStore = useAuthStore()
+  const createOrganization = async (organizationData: OrganizationInsert): Promise<boolean> => {
     loading.value = true
     error.value = null
 
     try {
-      const response = await fetch(API_ENDPOINTS.ORGANIZATIONS.LIST, {
-        method: 'POST',
-        headers: {
-          'Authorization': authStore.authHeader || '',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(organizationData)
-      })
+      const { error: supabaseError } = await supabase
+        .from('organizations')
+        .insert({
+          ...organizationData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
 
-      if (!response.ok) {
-        throw new Error('Error al crear organización')
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
       }
 
       await fetchOrganizations()
@@ -138,23 +145,21 @@ export const useOrganizationsStore = defineStore('organizations', () => {
     }
   }
 
-  const updateOrganization = async (id: string, organizationData: Partial<Organization>): Promise<boolean> => {
-    const authStore = useAuthStore()
+  const updateOrganization = async (id: string, organizationData: OrganizationUpdate): Promise<boolean> => {
     loading.value = true
     error.value = null
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.ORGANIZATIONS.LIST}/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': authStore.authHeader || '',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(organizationData)
-      })
+      const { error: supabaseError } = await supabase
+        .from('organizations')
+        .update({
+          ...organizationData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
 
-      if (!response.ok) {
-        throw new Error('Error al actualizar organización')
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
       }
 
       await fetchOrganizations()
@@ -174,21 +179,22 @@ export const useOrganizationsStore = defineStore('organizations', () => {
   }
 
   const deleteOrganization = async (id: string): Promise<boolean> => {
-    const authStore = useAuthStore()
     loading.value = true
     error.value = null
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.ORGANIZATIONS.LIST}/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': authStore.authHeader || '',
-          'Content-Type': 'application/json'
-        }
-      })
+      // Soft delete by setting deleted_at and active = false
+      const { error: supabaseError } = await supabase
+        .from('organizations')
+        .update({
+          active: false,
+          deleted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
 
-      if (!response.ok) {
-        throw new Error('Error al eliminar organización')
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
       }
 
       await fetchOrganizations()
@@ -219,9 +225,13 @@ export const useOrganizationsStore = defineStore('organizations', () => {
       return logoPath
     }
     
-    // Otherwise, construct the full URL using the API base
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://boost.pitahayasoft.com/api/v1'
-    return `${baseUrl.replace('/api/v1', '')}/${logoPath}`
+    // For Supabase storage, construct the URL
+    // This assumes logos are stored in Supabase Storage
+    const { data } = supabase.storage
+      .from('organization-logos')
+      .getPublicUrl(logoPath)
+    
+    return data.publicUrl || '/default-org-logo.svg'
   }
 
   return {

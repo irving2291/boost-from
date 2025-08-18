@@ -9,7 +9,7 @@
     >
       <div class="flex items-center space-x-3">
         <h3 class="font-bold text-lg text-charcoal uppercase tracking-wide">
-          {{ status.label }}
+          {{ status.name }}
         </h3>
         <div class="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-sm font-semibold">
           {{ requests.length }}
@@ -53,7 +53,7 @@
             <PhPlus :size="32" class="mx-auto opacity-50" />
           </div>
           <p class="text-sm text-slate-500">
-            No hay leads en {{ status.label.toLowerCase() }}
+            No hay leads en {{ status.name?.toLowerCase() || 'este estado' }}
           </p>
         </div>
         
@@ -74,10 +74,10 @@
 import { ref } from 'vue'
 import { PhPlus, PhTrash } from '@phosphor-icons/vue'
 import RequestCard from './RequestCard.vue'
-import type { RequestInformation, StatusDefinition } from '../../types'
+import type { RequestInformation, State } from '../../types/supabase'
 
 interface Props {
-  status: StatusDefinition
+  status: State
   requests: RequestInformation[]
   canDelete?: boolean
 }
@@ -87,19 +87,19 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  updateStatus: [requestId: string, newStatusName: string]
-  addRequest: [status: StatusDefinition]
-  deleteStatus: [status: StatusDefinition]
+  updateStatus: [requestId: string, newStatusId: string]
+  addRequest: [status: State]
+  deleteStatus: [status: State]
   openDetails: [request: RequestInformation]
-  headerDragStart: [status: StatusDefinition]
+  headerDragStart: [status: State]
   headerDragEnd: []
 }>()
 
 // Drag and drop state
 const isDragOver = ref(false)
 
-const handleStatusUpdate = (requestId: string, newStatusName: string) => {
-  emit('updateStatus', requestId, newStatusName)
+const handleStatusUpdate = (requestId: string, newStatusId: string) => {
+  emit('updateStatus', requestId, newStatusId)
 }
 
 const handleAddRequest = () => {
@@ -166,8 +166,8 @@ const handleCardDrop = (event: DragEvent) => {
       try {
         const request = JSON.parse(requestData) as RequestInformation
         // Only update if the status is different
-        if (request.status.code !== props.status.name) {
-          emit('updateStatus', request.id, props.status.name)
+        if (request.status_id !== props.status.id) {
+          emit('updateStatus', request.id, props.status.id)
         }
       } catch (error) {
         console.error('Error parsing dropped request data:', error)

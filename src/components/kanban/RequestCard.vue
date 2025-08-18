@@ -29,7 +29,7 @@
         </span>
         <!-- Status Badge if no priority -->
         <span v-else class="px-2 py-1 text-xs rounded font-bold uppercase tracking-wide bg-blue-100 text-blue-700">
-          {{ request.status.name }}
+          Estado
         </span>
       </div>
 
@@ -50,7 +50,7 @@
       <!-- Time info -->
       <div class="mb-4">
         <span class="text-sm text-slate-light">
-          {{ getTimeInfo(request.createdAt) }}
+          {{ getTimeInfo(request.created_at) }}
         </span>
       </div>
 
@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PhEnvelope, PhPhone, PhCalendar, PhPencil } from '@phosphor-icons/vue'
-import type { RequestInformation } from '../../types'
+import type { RequestInformation } from '../../types/supabase'
 
 interface Props {
   request: RequestInformation
@@ -86,7 +86,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  updateStatus: [requestId: string, newStatusName: string]
+  updateStatus: [requestId: string, newStatusId: string]
   openDetails: [request: RequestInformation]
 }>()
 
@@ -94,10 +94,9 @@ const emit = defineEmits<{
 const isDragging = ref(false)
 
 const getClientName = (request: RequestInformation) => {
-  // Handle the API typo "fistName" instead of "firstName"
-  const firstName = request.fistName || request.firstName || ''
-  const lastName = request.lastName || ''
-  return `${firstName} ${lastName}`.trim() || request.clientName || 'Sin nombre'
+  const firstName = request.first_name || ''
+  const lastName = request.last_name || ''
+  return `${firstName} ${lastName}`.trim() || 'Sin nombre'
 }
 
 const getPriorityColor = (priority?: string) => {
