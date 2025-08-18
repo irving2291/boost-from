@@ -17,8 +17,8 @@
       <div
         class="flex gap-6 pb-4 h-full px-4"
         style="min-width: max-content;"
-        @dragover.prevent
-        @drop="handleColumnDrop"
+        @dragover="handleBoardDragOver"
+        @drop="handleBoardDrop"
       >
         <KanbanColumn
           v-for="(status, index) in sortedStatuses"
@@ -30,11 +30,10 @@
           @add-request="handleAddRequestForStatus"
           @delete-status="handleDeleteStatus"
           @open-details="handleOpenDetails"
-          class="flex-shrink-0 cursor-move"
+          @header-drag-start="handleColumnDragStart(status, index)"
+          @header-drag-end="handleColumnDragEnd"
+          class="flex-shrink-0"
           style="width: 320px;"
-          draggable="true"
-          @dragstart="handleColumnDragStart($event, index)"
-          @dragend="handleColumnDragEnd"
         />
         
         <!-- Add new status column -->
@@ -51,7 +50,7 @@
     </div>
 
     <!-- Add Status Modal -->
-    <div v-if="showAddStatusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showAddStatusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200]">
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-slate-900">Nuevo Estado</h3>
@@ -179,6 +178,7 @@ const selectedRequest = ref<RequestInformation | null>(null)
 
 // Drag and drop state
 const draggedColumnIndex = ref<number | null>(null)
+const draggedStatus = ref<StatusDefinition | null>(null)
 
 const sortedStatuses = computed(() => statusStore.sortedStatuses)
 
@@ -246,42 +246,59 @@ const handleCreateStatus = async () => {
   }
 }
 
-// Drag and drop handlers
-const handleColumnDragStart = (event: DragEvent, index: number) => {
+// Drag and drop handlers for columns
+const handleColumnDragStart = (status: StatusDefinition, index: number) => {
   draggedColumnIndex.value = index
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', index.toString())
-  }
+  draggedStatus.value = status
 }
 
 const handleColumnDragEnd = () => {
   draggedColumnIndex.value = null
+  draggedStatus.value = null
 }
 
-const handleColumnDrop = (event: DragEvent) => {
+const handleBoardDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    const dragType = event.dataTransfer.getData('text/plain')
+    if (dragType === 'column') {
+      event.dataTransfer.dropEffect = 'move'
+    }
+  }
+}
+
+const handleBoardDrop = (event: DragEvent) => {
   event.preventDefault()
   
-  if (draggedColumnIndex.value === null) return
+  const dragType = event.dataTransfer?.getData('text/plain')
   
-  // Get the drop target element
-  const dropTarget = event.target as HTMLElement
-  const columnElement = dropTarget.closest('[draggable="true"]')
+  if (dragType === 'column' && draggedColumnIndex.value !== null) {
+    // Find the drop target column
+    const dropTarget = event.target as HTMLElement
+    const columnElement = dropTarget.closest('.flex-shrink-0')
+    
+    if (!columnElement) return
+    
+    // Find all column elements
+    const boardContainer = columnElement.parentElement
+    if (!boardContainer) return
+    
+    const allColumns = Array.from(boardContainer.children).filter(el =>
+      el.classList.contains('flex-shrink-0') && el.tagName !== 'DIV' ||
+      (el.tagName === 'DIV' && el.querySelector('[draggable="true"]'))
+    )
+    
+    const dropIndex = allColumns.indexOf(columnElement)
+    
+    if (dropIndex === -1 || dropIndex === draggedColumnIndex.value) return
+    
+    // Reorder the statuses
+    statusStore.reorderStatuses(draggedColumnIndex.value, dropIndex)
+  }
   
-  if (!columnElement) return
-  
-  // Find the index of the drop target
-  const allColumns = Array.from(columnElement.parentElement?.children || [])
-    .filter(el => el.getAttribute('draggable') === 'true')
-  
-  const dropIndex = allColumns.indexOf(columnElement)
-  
-  if (dropIndex === -1 || dropIndex === draggedColumnIndex.value) return
-  
-  // Reorder the statuses
-  statusStore.reorderStatuses(draggedColumnIndex.value, dropIndex)
-  
+  // Reset drag state
   draggedColumnIndex.value = null
+  draggedStatus.value = null
 }
 
 const handleOpenDetails = (request: RequestInformation) => {

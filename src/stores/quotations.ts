@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Quotation, CreateQuotationRequest } from '../types'
+import type { Quotation, CreateQuotationRequest, PaginatedResponse, PaginationMeta } from '../types'
 import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from './auth'
 
@@ -9,6 +9,7 @@ export const useQuotationsStore = defineStore('quotations', () => {
   const quotations = ref<Quotation[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const pagination = ref<PaginationMeta | null>(null)
 
   // Getters
   const getQuotationsByRequestId = computed(() => {
@@ -31,30 +32,41 @@ export const useQuotationsStore = defineStore('quotations', () => {
   })
 
   // Actions
-  const fetchQuotations = async () => {
+  const fetchQuotations = async (page: number = 1, perPage: number = 20) => {
     loading.value = true
     error.value = null
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(API_ENDPOINTS.CRM.QUOTATIONS, {
+      const url = new URL(API_ENDPOINTS.CRM.QUOTATIONS)
+      url.searchParams.append('page', page.toString())
+      url.searchParams.append('perPage', perPage.toString())
+      
+      const response = await fetch(url.toString(), {
         headers: createAuthHeaders(authStore.token || undefined)
       })
       
       await handleApiError(response)
-      const data = await response.json()
+      const data: PaginatedResponse<Quotation> = await response.json()
       
-      if (Array.isArray(data)) {
-        quotations.value = data
-      } else if (data.data && Array.isArray(data.data)) {
-        quotations.value = data.data
+      // Handle paginated response
+      if (data.items && Array.isArray(data.items)) {
+        quotations.value = data.items
+        pagination.value = data.meta
       } else {
-        quotations.value = []
+        // Fallback for non-paginated response
+        if (Array.isArray(data)) {
+          quotations.value = data as unknown as Quotation[]
+        } else {
+          quotations.value = []
+        }
+        pagination.value = null
       }
     } catch (err) {
       console.error('Error fetching quotations from API:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching quotations'
       quotations.value = []
+      pagination.value = null
     } finally {
       loading.value = false
     }
@@ -199,6 +211,7 @@ export const useQuotationsStore = defineStore('quotations', () => {
     quotations,
     loading,
     error,
+    pagination,
     // Getters
     getQuotationsByRequestId,
     quotationsByStatus,

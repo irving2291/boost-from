@@ -20,6 +20,18 @@ const routes: RouteRecordRaw[] = [
     component: () => TestPage
   },
   {
+    path: '/test-drag-drop',
+    name: 'TestDragDrop',
+    component: () => import('../pages/TestDragDropPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/test-kanban',
+    name: 'TestKanban',
+    component: () => import('../pages/TestKanbanPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../pages/DashboardPage.vue'),

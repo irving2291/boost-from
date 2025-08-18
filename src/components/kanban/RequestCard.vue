@@ -1,7 +1,13 @@
 <template>
-  <div class="bg-white rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
-       :style="{ borderLeftColor: statusColor }"
-       @click="openModal">
+  <div
+    class="bg-white rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
+    :style="{ borderLeftColor: statusColor }"
+    :class="{ 'opacity-50': isDragging }"
+    draggable="true"
+    @click="openModal"
+    @dragstart="handleDragStart"
+    @dragend="handleDragEnd"
+  >
     <!-- Header with name and priority -->
     <div class="p-4">
       <div class="flex items-start justify-between mb-2">
@@ -68,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { PhEnvelope, PhPhone, PhCalendar, PhPencil } from '@phosphor-icons/vue'
 import type { RequestInformation } from '../../types'
 
@@ -82,6 +89,9 @@ const emit = defineEmits<{
   updateStatus: [requestId: string, newStatusName: string]
   openDetails: [request: RequestInformation]
 }>()
+
+// Drag state
+const isDragging = ref(false)
 
 const getClientName = (request: RequestInformation) => {
   // Handle the API typo "fistName" instead of "firstName"
@@ -134,6 +144,24 @@ const getTimeInfo = (dateString: string) => {
 
 const openModal = () => {
   emit('openDetails', props.request)
+}
+
+// Drag and drop handlers
+const handleDragStart = (event: DragEvent) => {
+  isDragging.value = true
+  
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', 'request-card')
+    event.dataTransfer.setData('application/json', JSON.stringify(props.request))
+  }
+  
+  // Prevent the click event from firing when dragging
+  event.stopPropagation()
+}
+
+const handleDragEnd = () => {
+  isDragging.value = false
 }
 </script>
 

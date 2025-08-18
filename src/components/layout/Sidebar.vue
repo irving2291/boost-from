@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText } from '@phosphor-icons/vue'
+import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhList } from '@phosphor-icons/vue'
 import Badge from '../ui/Badge.vue'
 import { cn } from '../../utils'
 import { useRequestsStore } from '../../stores/requests'
 import { useAuthStore } from '../../stores/auth'
 import { useOrganizationsStore } from '../../stores/organizations'
+import { useSidebarStore } from '../../stores/sidebar'
 import { REQUEST_STATUSES, STATUS_LABELS } from '../../utils/constants'
 import NavItem from './NavItem.vue'
 import type { NavigationItem } from '../../types/navigation'
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 const requestsStore = useRequestsStore()
 const authStore = useAuthStore()
 const organizationsStore = useOrganizationsStore()
+const sidebarStore = useSidebarStore()
 
 const summary = computed(() => requestsStore.summary)
 const activeRequestsCount = computed(() => {
@@ -159,10 +161,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <aside 
+  <aside
     :class="cn(
-      'text-white w-64 min-h-screen flex flex-col',
+      'text-white min-h-screen flex flex-col transition-all duration-300 ease-in-out',
       'border-r border-slate-500 shadow-inner',
+      sidebarStore.isCollapsed ? 'w-16' : 'w-64',
       className
     )"
     :style="{ background: 'linear-gradient(to bottom, #4A5568, #2D3748)' }"
@@ -185,7 +188,10 @@ onMounted(() => {
             <PhBuildings :size="20" class="text-white" />
           </div>
         </div>
-        <div class="flex-1 min-w-0">
+        <div
+          v-if="!sidebarStore.isCollapsed"
+          class="flex-1 min-w-0 transition-opacity duration-300"
+        >
           <h1 class="text-lg font-bold text-white truncate">
             {{ organizationsStore.currentOrganization?.name || 'CRM System' }}
           </h1>
@@ -202,19 +208,23 @@ onMounted(() => {
         <NavItem
           :item="item"
           :current-path="currentPath"
+          :is-collapsed="sidebarStore.isCollapsed"
           @navigate="handleNavigation"
         />
       </template>
      </nav>
 
     <!-- Status Summary -->
-    <div v-if="summary" class="p-4 border-t border-slate-300 border-opacity-30">
+    <div
+      v-if="summary && !sidebarStore.isCollapsed"
+      class="p-4 border-t border-slate-300 border-opacity-30 transition-opacity duration-300"
+    >
       <h3 class="text-sm font-medium text-slate-100 mb-3">
         Estado de Requests
       </h3>
       <div class="space-y-2">
-        <div 
-          v-for="status in REQUEST_STATUSES" 
+        <div
+          v-for="status in REQUEST_STATUSES"
           :key="status"
           v-show="(summary.byStatus[status] || 0) > 0"
           class="flex items-center justify-between text-xs"
@@ -241,11 +251,27 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer with Copyright and Toggle Button -->
     <div class="p-4 border-t border-slate-300 border-opacity-30">
-      <p class="text-xs text-slate-200 text-center">
-        © 2024 CRM System
-      </p>
+      <div class="flex items-center justify-between">
+        <!-- Copyright -->
+        <div v-if="!sidebarStore.isCollapsed" class="flex-1">
+          <p class="text-xs text-slate-200">
+            © 2024 CRM System
+          </p>
+        </div>
+        
+        <!-- Toggle Button -->
+        <div class="flex-shrink-0">
+          <button
+            @click="sidebarStore.toggle"
+            class="p-2 rounded-lg hover:bg-slate-600 transition-colors text-white"
+            :title="sidebarStore.isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
+          >
+            <PhList :size="16" />
+          </button>
+        </div>
+      </div>
     </div>
   </aside>
 </template>

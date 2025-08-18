@@ -115,11 +115,14 @@
               <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
                   <span
-                    v-for="role in user.roles"
+                    v-for="role in (Array.isArray(user.roles) ? user.roles : [])"
                     :key="role"
                     class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
                   >
                     {{ role }}
+                  </span>
+                  <span v-if="!Array.isArray(user.roles) || user.roles.length === 0" class="text-sm text-gray-500">
+                    Sin roles
                   </span>
                 </div>
               </td>
@@ -148,11 +151,19 @@
                   Roles
                 </button>
                 <button
+                  v-if="canDeleteUser(user)"
                   @click="deleteUser(user)"
                   class="text-red-600 hover:text-red-900"
                 >
                   Eliminar
                 </button>
+                <span
+                  v-else
+                  class="text-gray-400 cursor-not-allowed"
+                  title="No se puede eliminar el último super administrador"
+                >
+                  Eliminar
+                </span>
               </td>
             </tr>
           </tbody>
@@ -296,27 +307,62 @@
 
     <!-- Roles Management Modal -->
     <div v-if="showRolesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-medium text-gray-900 mb-4">
           Gestionar Roles - {{ selectedUser?.name }}
         </h3>
         
-        <div class="space-y-3">
-          <div v-for="role in availableRoles" :key="role" class="flex items-center">
-            <input
-              :id="`role-${role}`"
-              v-model="selectedUserRoles"
-              :value="role"
-              type="checkbox"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            >
-            <label :for="`role-${role}`" class="ml-2 block text-sm text-gray-900 capitalize">
-              {{ role }}
-            </label>
+        <div v-if="loadingUserRoles" class="p-6 text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="mt-2 text-gray-600">Cargando roles del usuario...</p>
+        </div>
+        
+        <div v-else class="space-y-4">
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-900 mb-2">Roles Actuales</h4>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="role in (Array.isArray(selectedUser?.roles) ? selectedUser.roles : [])"
+                :key="role"
+                class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+              >
+                {{ role }}
+              </span>
+              <span v-if="!Array.isArray(selectedUser?.roles) || selectedUser.roles.length === 0" class="text-sm text-gray-500">
+                Sin roles asignados
+              </span>
+            </div>
+          </div>
+          
+          <div class="border rounded-lg p-4">
+            <h4 class="font-medium text-gray-900 mb-3">Roles Disponibles</h4>
+            <div class="grid grid-cols-1 gap-2">
+              <div v-for="role in systemRoles" :key="role.name" class="flex items-center justify-between p-2 border rounded">
+                <div class="flex items-center">
+                  <input
+                    :id="`role-${role.name}`"
+                    v-model="selectedUserRoles"
+                    :value="role.name"
+                    type="checkbox"
+                    :disabled="loadingUserRoles || saving"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                  >
+                  <label :for="`role-${role.name}`" class="ml-2 block text-sm text-gray-900 capitalize">
+                    {{ role.name }}
+                    <span v-if="role.description" class="text-gray-500 text-xs block">
+                      {{ role.description }}
+                    </span>
+                  </label>
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ role.permissions?.length || 0 }} permisos
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="flex justify-end space-x-3 pt-6">
+        <div class="flex justify-end space-x-3 pt-6 border-t mt-6">
           <button
             type="button"
             @click="closeRolesModal"
@@ -326,7 +372,7 @@
           </button>
           <button
             @click="saveUserRoles"
-            :disabled="saving"
+            :disabled="saving || loadingUserRoles"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50"
           >
             {{ saving ? 'Guardando...' : 'Guardar Roles' }}
@@ -363,6 +409,13 @@ interface Organization {
   name: string
 }
 
+interface Role {
+  name: string
+  description?: string
+  permissions?: string[]
+  users_count?: number
+}
+
 interface PaginationMeta {
   total: number
   per_page: number
@@ -376,10 +429,6 @@ interface PaginationMeta {
 
 const authStore = useAuthStore()
 
-interface Role {
-  name: string
-  description?: string
-}
 
 const users = ref<User[]>([])
 const organizations = ref<Organization[]>([])
@@ -416,10 +465,12 @@ const userFormData = ref({
   active: true
 })
 
+const systemRoles = ref<Role[]>([])
 const availableRoles = ref<string[]>([])
 const selectedUserRoles = ref<string[]>([])
+const loadingUserRoles = ref(false)
 
-let searchTimeout: number | null = null
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const debouncedSearch = () => {
   if (searchTimeout) {
@@ -535,6 +586,12 @@ const editUser = (user: User) => {
 }
 
 const deleteUser = async (user: User) => {
+  // Double-check if user can be deleted
+  if (!canDeleteUser(user)) {
+    alert('No se puede eliminar el último super administrador del sistema.')
+    return
+  }
+  
   if (!confirm(`¿Estás seguro de eliminar el usuario "${user.name}"?`)) {
     return
   }
@@ -558,10 +615,36 @@ const deleteUser = async (user: User) => {
   }
 }
 
-const manageUserRoles = (user: User) => {
+const manageUserRoles = async (user: User) => {
   selectedUser.value = user
-  selectedUserRoles.value = [...user.roles]
+  // Safely handle user.roles - ensure it's always an array
+  const userRoles = Array.isArray(user.roles) ? user.roles : []
+  selectedUserRoles.value = [...userRoles]
   showRolesModal.value = true
+  loadingUserRoles.value = true
+
+  try {
+    // Fetch current user roles from API
+    const response = await fetch(API_ENDPOINTS.RBAC.GRANTS.user(user.id), {
+      headers: {
+        'Authorization': authStore.authHeader || '',
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      // Extract roles from grants response
+      const roles = data.data?.roles || data.roles || []
+      selectedUserRoles.value = Array.isArray(roles) ? roles.map((r: any) => r.name || r) : []
+    }
+  } catch (err) {
+    console.error('Error fetching user roles:', err)
+    // Fallback to user.roles if API call fails - safely handle it
+    selectedUserRoles.value = [...userRoles]
+  } finally {
+    loadingUserRoles.value = false
+  }
 }
 
 const saveUserRoles = async () => {
@@ -570,7 +653,9 @@ const saveUserRoles = async () => {
   saving.value = true
 
   try {
-    const original = new Set<string>(selectedUser.value.roles || [])
+    // Safely handle selectedUser.value.roles
+    const originalRoles = Array.isArray(selectedUser.value.roles) ? selectedUser.value.roles : []
+    const original = new Set<string>(originalRoles)
     const selected = new Set<string>(selectedUserRoles.value)
 
     const toAdd = Array.from(selected).filter(r => !original.has(r))
@@ -644,6 +729,30 @@ const formatDate = (dateString: string) => {
   })
 }
 
+// Function to check if a user can be deleted
+const canDeleteUser = (user: User): boolean => {
+  // Check if user has super admin role
+  const userRoles = Array.isArray(user.roles) ? user.roles : []
+  const isSuperAdmin = userRoles.some(role =>
+    role.toLowerCase().includes('super') && role.toLowerCase().includes('admin')
+  )
+  
+  if (!isSuperAdmin) {
+    return true // Non-super admin users can always be deleted
+  }
+  
+  // Count total super admin users
+  const superAdminCount = users.value.filter(u => {
+    const roles = Array.isArray(u.roles) ? u.roles : []
+    return roles.some(role =>
+      role.toLowerCase().includes('super') && role.toLowerCase().includes('admin')
+    )
+  }).length
+  
+  // Don't allow deletion if this is the last super admin
+  return superAdminCount > 1
+}
+
 const fetchAvailableRoles = async () => {
   try {
     const response = await fetch(API_ENDPOINTS.RBAC.ROLES, {
@@ -655,6 +764,7 @@ const fetchAvailableRoles = async () => {
     if (response.ok) {
       const data = await response.json()
       const list: Role[] = (data.data || data) as Role[]
+      systemRoles.value = list
       availableRoles.value = list.map(r => r.name).sort()
     }
   } catch (err) {

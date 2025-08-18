@@ -42,6 +42,7 @@ export interface ApiStatus {
   id: string;
   code: string;
   name: string;
+  sort?: number;
 }
 
 // Internal status interface for UI
@@ -51,6 +52,7 @@ export interface StatusDefinition {
   label: string;
   color: string;
   order: number;
+  sort?: number;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
@@ -67,16 +69,33 @@ export interface QuotationDetail {
 export interface Quotation {
   id?: string;
   requestInformationId: string;
+  organizationId?: string;
   details: QuotationDetail[];
   status: 'creating' | 'sent' | 'accepted' | 'rejected';
   createdAt?: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
+  deletedAt?: string | null;
 }
 
 export interface CreateQuotationRequest {
   requestInformationId: string;
   details: QuotationDetail[];
   status: 'creating';
+}
+
+// Paginated response types
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  perPage: number;
+  pages: number;
+  orderBy: string;
+  direction: 'ASC' | 'DESC';
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  meta: PaginationMeta;
 }
 
 export interface RequestSummary {

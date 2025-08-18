@@ -76,36 +76,12 @@ export const useStatusStore = defineStore('status', () => {
 
   // Getters
   const sortedStatuses = computed(() => {
-    // Get saved order from localStorage
-    const savedOrder = localStorage.getItem('status-column-order')
-    if (savedOrder) {
-      try {
-        const orderArray = JSON.parse(savedOrder) as string[]
-        const orderedStatuses = []
-        
-        // First, add statuses in saved order
-        for (const statusId of orderArray) {
-          const status = statuses.value.find(s => s.id === statusId)
-          if (status) {
-            orderedStatuses.push(status)
-          }
-        }
-        
-        // Then add any new statuses that weren't in saved order
-        for (const status of statuses.value) {
-          if (!orderArray.includes(status.id)) {
-            orderedStatuses.push(status)
-          }
-        }
-        
-        return orderedStatuses
-      } catch (error) {
-        console.error('Error parsing saved status order:', error)
-      }
-    }
-    
-    // Fallback to default order
-    return [...statuses.value].sort((a, b) => a.order - b.order)
+    // Sort by sort field if available, otherwise by order
+    return [...statuses.value].sort((a, b) => {
+      const sortA = a.sort !== undefined ? a.sort : a.order
+      const sortB = b.sort !== undefined ? b.sort : b.order
+      return sortA - sortB
+    })
   })
 
   const getStatusById = computed(() => {
@@ -117,19 +93,54 @@ export const useStatusStore = defineStore('status', () => {
   })
 
   // Actions for column ordering
-  const saveColumnOrder = (statusIds: string[]) => {
-    localStorage.setItem('status-column-order', JSON.stringify(statusIds))
-  }
-
-  const reorderStatuses = (fromIndex: number, toIndex: number) => {
+  const reorderStatuses = async (fromIndex: number, toIndex: number) => {
     const currentOrder = sortedStatuses.value
     const newOrder = [...currentOrder]
     const [movedStatus] = newOrder.splice(fromIndex, 1)
     newOrder.splice(toIndex, 0, movedStatus)
     
-    // Save new order to localStorage
-    const statusIds = newOrder.map(s => s.id)
-    saveColumnOrder(statusIds)
+    // Update sort values for all affected statuses
+    const updates = newOrder.map((status, index) => ({
+      id: status.id,
+      sort: index + 1
+    }))
+    
+    // Update local state immediately for better UX
+    updates.forEach(update => {
+      const status = statuses.value.find(s => s.id === update.id)
+      if (status) {
+        status.sort = update.sort
+        status.order = update.sort
+      }
+    })
+    
+    // Send updates to API
+    try {
+      await updateStatusOrder(updates)
+    } catch (error) {
+      console.error('Error updating status order:', error)
+      // Revert changes on error
+      await fetchStatuses()
+    }
+  }
+
+  const updateStatusOrder = async (updates: { id: string; sort: number }[]) => {
+    const authStore = useAuthStore()
+    
+    for (const update of updates) {
+      try {
+        const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS_STATUS}/${update.id}`, {
+          method: 'PATCH',
+          headers: createAuthHeaders(authStore.token || undefined),
+          body: JSON.stringify({ sort: update.sort })
+        })
+        
+        await handleApiError(response)
+      } catch (error) {
+        console.error(`Error updating status ${update.id}:`, error)
+        throw error
+      }
+    }
   }
 
   // Actions
@@ -154,7 +165,8 @@ export const useStatusStore = defineStore('status', () => {
           name: apiStatus.code,
           label: apiStatus.name,
           color: getColorForStatus(apiStatus.code, index),
-          order: index + 1,
+          order: apiStatus.sort || index + 1,
+          sort: apiStatus.sort,
           isDefault: apiStatus.code === 'new', // Assume 'new' is default
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -319,7 +331,7 @@ export const useStatusStore = defineStore('status', () => {
     createStatus,
     updateStatus,
     deleteStatus,
-    saveColumnOrder,
-    reorderStatuses
+    reorderStatuses,
+    updateStatusOrder
   }
 })

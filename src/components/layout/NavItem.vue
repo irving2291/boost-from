@@ -12,10 +12,12 @@ import type { NavigationItem } from '../../types/navigation'
 interface Props {
   item: NavigationItem
   currentPath?: string
+  isCollapsed?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  currentPath: ''
+  currentPath: '',
+  isCollapsed: false
 })
 
 const route = useRoute()
@@ -49,49 +51,127 @@ const handleChildNavigation = (path: string) => {
 </script>
 
 <template>
-  <a
+  <!-- Simple item without children -->
+  <div
     v-if="!item.children?.length"
-    :class="[
-      'flex w-full items-center py-2 px-3 text-sm font-medium rounded-md transition-colors',
-      isActive
-        ? 'bg-blue-600 text-white shadow-md'
-        : 'text-white hover:bg-opacity-40 hover:bg-gray-900'
-    ]"
-    href="#"
-    @click.prevent="handleNavigation(item.path)"
+    class="relative group"
   >
-    <component :is="item.icon" class="h-5 w-5 shrink-0 mr-3" />
-    <span class="flex-1">{{ item.label }}</span>
-    <span
-      v-if="item.badge && item.badge > 0"
-      class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center"
-    >
-      {{ item.badge }}
-    </span>
-  </a>
-
-  <Disclosure v-else v-slot="{ open }" :default-open="isActive">
-    <DisclosureButton
+    <a
       :class="[
-        'flex w-full text-left items-center py-2 px-3 font-medium rounded-md transition-colors',
+        'flex w-full items-center py-2 px-3 text-sm font-medium rounded-md transition-colors relative',
         isActive
-          ? 'bg-blue-600 bg-opacity-20 text-white'
-          : 'text-white hover:bg-opacity-40 hover:bg-gray-900'
+          ? 'bg-blue-600 text-white shadow-md'
+          : 'text-white hover:bg-opacity-40 hover:bg-gray-900',
+        isCollapsed ? 'justify-center' : ''
       ]"
+      href="#"
+      @click.prevent="handleNavigation(item.path)"
+      :title="isCollapsed ? item.label : ''"
     >
-      <component :is="item.icon" class="h-5 w-5 shrink-0 mr-3" />
-      <span class="flex-1">{{ item.label }}</span>
-      <PhCaretDown v-if="open" class="w-4 h-4 transition-transform" />
-      <PhCaretRight v-else class="w-4 h-4 transition-transform" />
-    </DisclosureButton>
-    <DisclosurePanel class="ml-6 mt-1 space-y-1">
-      <NavItem
-        v-for="child in item.children"
-        :item="child"
-        :key="child.id"
-        :current-path="currentPath"
-        @navigate="handleChildNavigation"
-      />
-    </DisclosurePanel>
-  </Disclosure>
+      <component :is="item.icon" :class="['h-5 w-5 shrink-0', isCollapsed ? '' : 'mr-3']" />
+      <span
+        v-if="!isCollapsed"
+        class="flex-1 transition-opacity duration-300"
+      >
+        {{ item.label }}
+      </span>
+      <span
+        v-if="item.badge && item.badge > 0 && !isCollapsed"
+        class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center"
+      >
+        {{ item.badge }}
+      </span>
+      <!-- Badge for collapsed mode -->
+      <span
+        v-if="item.badge && item.badge > 0 && isCollapsed"
+        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+      >
+        {{ item.badge > 99 ? '99+' : item.badge }}
+      </span>
+    </a>
+    
+    <!-- Tooltip for collapsed mode -->
+    <div
+      v-if="isCollapsed"
+      class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap"
+      style="top: 50%; transform: translateY(-50%)"
+    >
+      {{ item.label }}
+      <span
+        v-if="item.badge && item.badge > 0"
+        class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1"
+      >
+        {{ item.badge }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Parent item with children -->
+  <div
+    v-else
+    class="relative group"
+  >
+    <Disclosure v-slot="{ open }" :default-open="isActive && !isCollapsed">
+      <DisclosureButton
+        :class="[
+          'flex w-full text-left items-center py-2 px-3 font-medium rounded-md transition-colors',
+          isActive
+            ? 'bg-blue-600 bg-opacity-20 text-white'
+            : 'text-white hover:bg-opacity-40 hover:bg-gray-900',
+          isCollapsed ? 'justify-center' : ''
+        ]"
+        :title="isCollapsed ? item.label : ''"
+      >
+        <component :is="item.icon" :class="['h-5 w-5 shrink-0', isCollapsed ? '' : 'mr-3']" />
+        <span
+          v-if="!isCollapsed"
+          class="flex-1 transition-opacity duration-300"
+        >
+          {{ item.label }}
+        </span>
+        <PhCaretDown
+          v-if="open && !isCollapsed"
+          class="w-4 h-4 transition-transform"
+        />
+        <PhCaretRight
+          v-else-if="!isCollapsed"
+          class="w-4 h-4 transition-transform"
+        />
+      </DisclosureButton>
+      
+      <!-- Children panel (only show when not collapsed) -->
+      <DisclosurePanel
+        v-if="!isCollapsed"
+        class="ml-6 mt-1 space-y-1"
+      >
+        <NavItem
+          v-for="child in item.children"
+          :item="child"
+          :key="child.id"
+          :current-path="currentPath"
+          :is-collapsed="false"
+          @navigate="handleChildNavigation"
+        />
+      </DisclosurePanel>
+    </Disclosure>
+    
+    <!-- Tooltip for collapsed parent items -->
+    <div
+      v-if="isCollapsed"
+      class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap"
+      style="top: 50%; transform: translateY(-50%)"
+    >
+      <div class="font-medium">{{ item.label }}</div>
+      <div v-if="item.children" class="mt-1 space-y-1">
+        <div
+          v-for="child in item.children"
+          :key="child.id"
+          class="text-xs text-gray-300 cursor-pointer hover:text-white"
+          @click="handleChildNavigation(child.path || '')"
+        >
+          {{ child.label }}
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

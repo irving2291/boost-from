@@ -1,6 +1,15 @@
 <template>
   <header class="bg-white border-b border-slate-200 px-6 py-4">
     <div class="flex items-center justify-between">
+      <!-- Sidebar Toggle Button (visible on smaller screens) -->
+      <button
+        @click="sidebarStore.toggle"
+        class="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600 md:hidden mr-4"
+        :title="sidebarStore.isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
+      >
+        <PhList :size="20" />
+      </button>
+
       <!-- Search Bar -->
       <div class="flex-1 max-w-md">
         <div class="relative">
@@ -61,7 +70,7 @@
           <!-- User Dropdown -->
           <div
             v-if="showUserMenu"
-            class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50"
+            class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-[100]"
           >
             <div class="px-4 py-2 border-b border-slate-200">
               <p class="text-sm font-medium text-slate-900">{{ authStore.user?.name || 'Usuario' }}</p>
@@ -111,14 +120,17 @@ import {
   PhCaretDown,
   PhUser,
   PhGear,
-  PhSignOut
+  PhSignOut,
+  PhList
 } from '@phosphor-icons/vue'
 import { useNetworkStore } from '../../stores/network'
 import { useAuthStore } from '../../stores/auth'
+import { useSidebarStore } from '../../stores/sidebar'
 
 const router = useRouter()
 const networkStore = useNetworkStore()
 const authStore = useAuthStore()
+const sidebarStore = useSidebarStore()
 const searchQuery = ref('')
 const showUserMenu = ref(false)
 

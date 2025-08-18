@@ -273,17 +273,27 @@
         </form>
       </div>
     </div>
+
+    <!-- Quotation Details Modal -->
+    <QuotationDetailsModal
+      v-if="selectedQuotation"
+      :is-open="showDetailsModal"
+      :quotation="selectedQuotation"
+      @close="closeDetailsModal"
+      @updated="handleQuotationUpdated"
+    />
   </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { 
-  PhPlus, PhFileText, PhClock, PhPaperPlaneTilt, PhCheckCircle, 
-  PhWarning, PhEye, PhPencil, PhTrash, PhX 
+import {
+  PhPlus, PhFileText, PhClock, PhPaperPlaneTilt, PhCheckCircle,
+  PhWarning, PhEye, PhPencil, PhTrash, PhX
 } from '@phosphor-icons/vue'
 import Layout from '../components/layout/Layout.vue'
 import Badge from '../components/ui/Badge.vue'
+import QuotationDetailsModal from '../components/quotations/QuotationDetailsModal.vue'
 import { useQuotationsStore } from '../stores/quotations'
 import { useRequestsStore } from '../stores/requests'
 import type { CreateQuotationRequest, QuotationDetail, Quotation } from '../types'
@@ -292,6 +302,8 @@ const quotationsStore = useQuotationsStore()
 const requestsStore = useRequestsStore()
 
 const showCreateModal = ref(false)
+const showDetailsModal = ref(false)
+const selectedQuotation = ref<Quotation | null>(null)
 const newQuotation = ref<CreateQuotationRequest>({
   requestInformationId: '',
   details: [
@@ -399,8 +411,18 @@ const handleCreateQuotation = async () => {
 }
 
 const viewQuotation = (quotation: Quotation) => {
-  // TODO: Implement view quotation modal
-  console.log('View quotation:', quotation)
+  selectedQuotation.value = quotation
+  showDetailsModal.value = true
+}
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedQuotation.value = null
+}
+
+const handleQuotationUpdated = () => {
+  // Refresh quotations list after update
+  fetchQuotations()
 }
 
 const editQuotation = (quotation: Quotation) => {

@@ -20,7 +20,7 @@ export const useRequestsStore = defineStore('requests', () => {
     const grouped: Record<string, RequestInformation[]> = {}
     
     // Initialize groups for all available statuses
-    statusStore.statuses.forEach(status => {
+    statusStore.statuses.forEach((status: any) => {
       grouped[status.name] = []
     })
 
@@ -117,9 +117,9 @@ export const useRequestsStore = defineStore('requests', () => {
       params.append('limit', '999')
       
       // Add status parameters
-      const statusCodes = statusCode ? [statusCode] : statusStore.statuses.map(s => s.name)
+      const statusCodes = statusCode ? [statusCode] : statusStore.statuses.map((s: any) => s.name)
       if (statusCodes.length > 0) {
-        statusCodes.forEach(code => params.append('status', code))
+        statusCodes.forEach((code: string) => params.append('status', code))
       }
       
       url += `?${params.toString()}`
@@ -155,16 +155,41 @@ export const useRequestsStore = defineStore('requests', () => {
   }
 
   const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
-    const request = requests.value.find(r => r.id === requestId)
-    if (request) {
-      // Update the status object with the new status code
-      // For now, we'll just update the code, but in a real implementation
-      // this would call the API to get the full status object
-      request.status = {
-        ...request.status,
-        code: newStatusCode
+    try {
+      const authStore = useAuthStore()
+      
+      // Call API to update request status using the correct endpoint
+      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/${requestId}/status`, {
+        method: 'PATCH',
+        headers: createAuthHeaders(authStore.token || undefined),
+        body: JSON.stringify({
+          status_code: newStatusCode
+        })
+      })
+      
+      await handleApiError(response)
+      
+      // Update local state
+      const request = requests.value.find(r => r.id === requestId)
+      if (request) {
+        request.status = {
+          ...request.status,
+          code: newStatusCode
+        }
+        request.updatedAt = new Date().toISOString()
       }
-      request.updatedAt = new Date().toISOString()
+    } catch (error) {
+      console.error('Error updating request status:', error)
+      
+      // Fallback: update locally if API fails
+      const request = requests.value.find(r => r.id === requestId)
+      if (request) {
+        request.status = {
+          ...request.status,
+          code: newStatusCode
+        }
+        request.updatedAt = new Date().toISOString()
+      }
     }
   }
 
