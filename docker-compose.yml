@@ -1,14 +1,18 @@
 services:
-  frontend:
+  web:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: react_vite_app
+      dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
+    environment:
+      - HOST=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+      # En algunos entornos Vite usa WebSocket/HMR por el mismo puerto,
+      # si tu setup requiere puerto fijo wdel cliente, puedes pasar HMR por args:
+      # - VITE_HMR_CLIENT_PORT=5173
     volumes:
       - .:/app
+      # Evita que el bind mount del host tape los node_modules del contenedor
       - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    command: npm run dev -- --host 0.0.0.0
+    command: npm run dev -- --host 0.0.0.0 --port 5173

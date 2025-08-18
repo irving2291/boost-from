@@ -1,0 +1,26 @@
+# Dockerfile.dev
+FROM node:22-alpine
+
+# (Opcional pero útil para algunos módulos nativos)
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Instala deps primero para aprovechar cache
+COPY package*.json ./
+# Si usas pnpm/yarn, cambia este comando por pnpm i --frozen-lockfile o yarn --frozen-lockfile
+RUN npm i
+
+# Copiamos el resto (se sobreescribirá con el volumen en runtime, pero sirve para build inicial)
+COPY . .
+
+# Vite escucha en 5173
+EXPOSE 5173
+
+# Permite que Vite acepte conexiones externas (desde tu host)
+ENV HOST=0.0.0.0
+# En Docker Desktop/WSL/FS montado, el polling es más fiable para HMR
+ENV CHOKIDAR_USEPOLLING=true
+
+# Ejecuta Vite en modo dev
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

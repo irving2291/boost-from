@@ -147,7 +147,7 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach((to:any, _:any, next:any) => {
   const authStore = useAuthStore()
   
   // Initialize auth state if not already done
@@ -155,9 +155,9 @@ router.beforeEach((to, from, next) => {
     authStore.initializeAuth()
   }
 
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
-  const requiresRole = to.matched.find(record => record.meta.requiresRole)?.meta.requiresRole as string[] | undefined
+  const requiresAuth = to.matched.some((record:any) => record.meta.requiresAuth)
+  const requiresGuest = to.matched.some((record:any) => record.meta.requiresGuest)
+  const requiresRole = to.matched.find((record:any) => record.meta.requiresRole)?.meta.requiresRole as string[] | undefined
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Save the intended destination for redirect after login
@@ -165,6 +165,7 @@ router.beforeEach((to, from, next) => {
     if (redirectPath) {
       localStorage.setItem('auth_redirect_url', redirectPath)
     }
+
     // Redirect to login if authentication is required but user is not authenticated
     next('/login')
   } else if (requiresGuest && authStore.isAuthenticated) {
