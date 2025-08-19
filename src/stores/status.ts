@@ -115,11 +115,15 @@ export const useStatusStore = defineStore('status', () => {
     try {
       const authStore = useAuthStore()
       
+      if (!authStore.user) {
+        throw new Error('User not authenticated')
+      }
+      
       // Get user's organization from profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('organization_id')
-        .eq('id', authStore.user?.id)
+        .eq('id', (authStore.user as any).id)
         .single()
 
       if (!profile?.organization_id) {
@@ -139,10 +143,11 @@ export const useStatusStore = defineStore('status', () => {
       
       statuses.value = data || []
 
-      // If no statuses exist, create default ones
-      if (statuses.value.length === 0) {
-        await createDefaultStatuses(profile.organization_id, entityType)
-      }
+      // Removed automatic creation of default statuses to prevent unwanted POSTs
+      // If you need to create default statuses, do it manually through the UI
+      // if (statuses.value.length === 0) {
+      //   await createDefaultStatuses(profile.organization_id, entityType)
+      // }
     } catch (err) {
       console.error('Error fetching statuses from Supabase:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching statuses'
@@ -154,12 +159,12 @@ export const useStatusStore = defineStore('status', () => {
 
   const createDefaultStatuses = async (organizationId: string, entityType: string) => {
     const defaultStatuses = [
-      { code: 'NUEVOS', name: 'Nuevos', sort: 1, default: true },
-      { code: 'CONTACTADOS', name: 'Contactados', sort: 2, default: false },
-      { code: 'CALIFICADOS', name: 'Calificados', sort: 3, default: false },
-      { code: 'PROPUESTA', name: 'Propuesta', sort: 4, default: false },
-      { code: 'NEGOCIACION', name: 'Negociación', sort: 5, default: false },
-      { code: 'GANADOS', name: 'Ganados', sort: 6, default: false }
+      { code: 'new', name: 'Nuevos', sort: 1, default: true },
+      { code: 'recontact', name: 'Contactados', sort: 2, default: false },
+      { code: 'close', name: 'Calificados', sort: 3, default: false },
+      { code: 'lost', name: 'Propuesta', sort: 4, default: false },
+      { code: 'in_progress', name: 'Negociación', sort: 5, default: false },
+      { code: 'won', name: 'Ganados', sort: 6, default: false }
     ]
 
     try {
@@ -194,11 +199,15 @@ export const useStatusStore = defineStore('status', () => {
     try {
       const authStore = useAuthStore()
       
+      if (!authStore.user) {
+        throw new Error('User not authenticated')
+      }
+      
       // Get user's organization from profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('organization_id')
-        .eq('id', authStore.user?.id)
+        .eq('id', (authStore.user as any).id)
         .single()
 
       if (!profile?.organization_id) {
