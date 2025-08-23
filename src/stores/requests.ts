@@ -39,26 +39,6 @@ export const useRequestsStore = defineStore('requests', () => {
     return grouped
   })
 
-  // Legacy getter for backward compatibility
-  const requestsByLegacyStatus = computed(() => {
-    const grouped: Record<RequestStatus, RequestInformation[]> = {
-      NEW: [],
-      IN_PROGRESS: [],
-      RECONTACT: [],
-      WON: [],
-      LOST: [],
-      CLOSE: []
-    }
-
-    requests.value.forEach(request => {
-      // Use legacy mapping for backward compatibility
-      const legacyStatus = mapStatusCodeToLegacy(request.status.code)
-      grouped[legacyStatus].push(request)
-    })
-
-    return grouped
-  })
-
   const summary = computed(() => {
     const statusStore = useStatusStore()
     const byStatus: Record<string, number> = {}
@@ -153,19 +133,6 @@ export const useRequestsStore = defineStore('requests', () => {
       completedStatuses.some(status => status.name === request.status.code)
     ).length
   })
-
-  // Helper function to map status codes to legacy status
-  const mapStatusCodeToLegacy = (code: string): RequestStatus => {
-    const mapping: Record<string, RequestStatus> = {
-      'new': 'NEW',
-      'in_progress': 'IN_PROGRESS',
-      'recontact': 'RECONTACT',
-      'won': 'WON',
-      'lost': 'LOST',
-      'close': 'CLOSE'
-    }
-    return mapping[code] || 'NEW'
-  }
 
   // Actions
   const fetchRequests = async () => {
@@ -284,7 +251,6 @@ export const useRequestsStore = defineStore('requests', () => {
     error,
     // Getters
     requestsByStatus,
-    requestsByLegacyStatus,
     summary,
     newToday,
     pendingRequests,
