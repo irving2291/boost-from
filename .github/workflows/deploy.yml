@@ -27,8 +27,11 @@ jobs:
 
       - name: Install deps
         run: npm install
-      
+
       - name: build
+        run: npm run build
+      
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
