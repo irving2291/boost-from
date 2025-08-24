@@ -511,7 +511,7 @@ const fetchUsers = async (page: number = 1) => {
     params.append('page', page.toString())
     params.append('per_page', paginationMeta.value.per_page.toString())
 
-    const url = `https://boost.pitahayasoft.com/api/v1/auth/users${params.toString() ? '?' + params.toString() : ''}`
+    const url = `https://api.boost.pitahayasoft.com/v1/auth/users${params.toString() ? '?' + params.toString() : ''}`
     
     const response = await fetch(url, {
       headers: {
@@ -546,8 +546,8 @@ const saveUser = async () => {
   
   try {
     const url = editingUser.value 
-      ? `https://boost.pitahayasoft.com/api/v1/auth/users/${editingUser.value.id}`
-      : 'https://boost.pitahayasoft.com/api/v1/auth/users'
+      ? `https://api.boost.pitahayasoft.com/v1/auth/users/${editingUser.value.id}`
+      : 'https://api.boost.pitahayasoft.com/v1/auth/users'
     
     const method = editingUser.value ? 'PUT' : 'POST'
     
@@ -597,7 +597,7 @@ const deleteUser = async (user: User) => {
   }
   
   try {
-    const response = await fetch(`https://boost.pitahayasoft.com/api/v1/auth/users/${user.id}`, {
+    const response = await fetch(`https://api.boost.pitahayasoft.com/v1/auth/users/${user.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authStore.authHeader || '',

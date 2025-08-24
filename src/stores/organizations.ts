@@ -220,7 +220,7 @@ export const useOrganizationsStore = defineStore('organizations', () => {
     }
     
     // Otherwise, construct the full URL using the API base
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://boost.pitahayasoft.com/api/v1'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.boost.pitahayasoft.com/v1'
     return `${baseUrl.replace('/api/v1', '')}/${logoPath}`
   }
 
