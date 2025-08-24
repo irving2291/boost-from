@@ -1,0 +1,55 @@
+name: Deploy Vue to S3 + CoudFront (OIDC)
+
+on:
+  push:
+    branchas: ["master"]
+  
+  env:
+  BUILD_DIR: dist
+
+  jobs:
+    build-and-deploy:
+      runs-on: ubuntu-latest
+      permissions:
+        id-token: write
+        contents: read
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Setup Node
+          uses: actions/setup-node@v4
+          with:
+            node-version: '22'
+            cache: 'npm'
+
+        - name: Install deps
+          run: npm Install
+        
+        - name: build
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+            aws-region: ${{ vars.AWS_REGION }}
+
+        - name: Sync assets (long cache)
+          run: |
+            aws s3 sync $BUILD_DIR s3://${{ vars.S3_BUCKET }} \
+              --delete \
+              --exclude "index.html" \
+              --cache-control "public,max-age=3153600,inmutable" \
+              --only-show-errors
+        
+        - name: Upload index.html (no-store)
+          run: |
+            aws s3 cp $BUILD_DIR/index.html s3://${{ vars.S3_BUCKET }}/index.html \
+            --cache-control "no-store" \
+            --content-type "text/html" \
+            --only-show-errors
+
+        - name: Invalidate CloudFront
+          run: |
+            aws cloudFront create-invalidation \
+              --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+              --paths '/*'
