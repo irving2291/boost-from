@@ -26,7 +26,7 @@ jobs:
           cache: 'npm'
 
       - name: Install deps
-        run: npm Install
+        run: npm install
       
       - name: build
         uses: aws-actions/configure-aws-credentials@v4
