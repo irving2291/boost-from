@@ -2,7 +2,7 @@ name: Deploy Vue to S3 + CoudFront (OIDC)
 
 on:
   push:
-    branchas: ["master"]
+    branches: ["master"]
   
 env:
   BUILD_DIR: dist
