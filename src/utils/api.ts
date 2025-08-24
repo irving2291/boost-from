@@ -67,6 +67,59 @@ export const handleApiError = async (response: Response) => {
   return response
 }
 
+// API Interceptor for automatic token expiration handling
+export const createApiClient = () => {
+  const originalFetch = window.fetch
+
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const response = await originalFetch(input, init)
+    
+    // Check if response is 401 (Unauthorized) and we have an auth header
+    if (response.status === 401 && init?.headers) {
+      const headers = init.headers as Record<string, string>
+      const authHeader = headers['Authorization'] || headers['authorization']
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Token expired or invalid, trigger logout
+        await handleTokenExpiration()
+      }
+    }
+    
+    return response
+  }
+}
+
+// Handle token expiration
+const handleTokenExpiration = async () => {
+  try {
+    // Dynamically import to avoid circular dependency
+    const { useAuthStore } = await import('../stores/auth')
+    const authStore = useAuthStore()
+    
+    // Get router instance
+    const router = await import('../router').then(m => m.default)
+    
+    // Force logout with reason
+    await authStore.forceLogout(router, 'Token expirado por respuesta 401 del servidor')
+    
+    // Optional: Show a toast notification if you have a notification system
+    // You can uncomment and modify this if you have a notification store
+    // const { useNotificationStore } = await import('../stores/notifications')
+    // const notificationStore = useNotificationStore()
+    // notificationStore.showWarning('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.')
+    
+  } catch (error) {
+    console.error('Error handling token expiration:', error)
+    // Fallback: redirect to login page
+    window.location.href = '/login'
+  }
+}
+
+// Initialize API interceptor
+export const initializeApiInterceptor = () => {
+  createApiClient()
+}
+
 // JWT Token utilities
 export const decodeJWT = (token: string) => {
   try {

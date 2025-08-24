@@ -138,6 +138,12 @@ const routes: RouteRecordRaw[] = [
     name: 'AccountEdit',
     component: () => import('../pages/AccountEditPage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/components-test',
+    name: 'ComponentsTest',
+    component: () => import('../pages/ComponentsTestPage.vue'),
+    meta: { requiresAuth: false }
   }
 ]
 
@@ -147,12 +153,17 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
   // Initialize auth state if not already done
   if (!authStore.user && !authStore.token) {
-    authStore.initializeAuth()
+    await authStore.initializeAuth()
+  }
+
+  // Check for token expiration before each navigation
+  if (authStore.token) {
+    authStore.checkTokenExpiration(router)
   }
 
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
@@ -188,6 +199,16 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     next()
+  }
+})
+
+// Global error handler for navigation errors
+router.onError((error) => {
+  console.error('Router navigation error:', error)
+  
+  // If it's an authentication error, redirect to login
+  if (error.message.includes('authentication') || error.message.includes('token')) {
+    router.push('/login')
   }
 })
 

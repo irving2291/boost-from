@@ -281,8 +281,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const checkTokenExpiration = (router?: Router) => {
     if (token.value && isTokenExpired(token.value)) {
+      console.warn('Token expirado detectado, cerrando sesión...')
       logout(router)
+      return true
     }
+    return false
+  }
+
+  const forceLogout = async (router?: Router, reason?: string) => {
+    console.warn(`Forzando cierre de sesión: ${reason || 'Token expirado'}`)
+    await logout(router)
   }
 
   const clearError = () => {
@@ -327,6 +335,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     initializeAuth,
     checkTokenExpiration,
+    forceLogout,
     clearError
   }
 })
