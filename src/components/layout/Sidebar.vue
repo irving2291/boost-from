@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhList, PhUserCheck, PhAddressBook } from '@phosphor-icons/vue'
+import { useI18n } from 'vue-i18n'
+import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhList, PhUserCheck, PhAddressBook, PhMegaphone } from '@phosphor-icons/vue'
 import Badge from '../ui/Badge.vue'
+import LanguageSelector from '../ui/LanguageSelector.vue'
 import { cn } from '../../utils'
 import { useRequestsStore } from '../../stores/requests'
 import { useAuthStore } from '../../stores/auth'
 import { useOrganizationsStore } from '../../stores/organizations'
 import { useSidebarStore } from '../../stores/sidebar'
-import { REQUEST_STATUSES, STATUS_LABELS } from '../../utils/constants'
+import { REQUEST_STATUSES } from '../../utils/constants'
+import { getStatusLabel } from '../../utils/i18n-helpers'
 import NavItem from './NavItem.vue'
 import type { NavigationItem } from '../../types/navigation'
+
+const { t } = useI18n()
 
 interface Props {
   currentPath?: string
@@ -40,77 +45,89 @@ const activeRequestsCount = computed(() => {
 const allNavigationItems = computed((): NavigationItem[] => [
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: t('navigation.dashboard'),
     icon: PhHouse,
     path: '/dashboard',
   },
   {
     id: 'crm',
-    label: 'CRM',
+    label: t('navigation.crm'),
     icon: PhUsersThree,
     children: [
       {
         id: 'requests',
-        label: 'Requests',
+        label: t('navigation.requests'),
         icon: PhKanban,
         path: '/requests',
         badge: activeRequestsCount.value,
       },
       {
         id: 'assignees',
-        label: 'Responsables',
+        label: t('navigation.assignees'),
         icon: PhUserCheck,
         path: '/assignees',
       },
       {
         id: 'quotations',
-        label: 'Cotizaciones',
+        label: t('navigation.quotations'),
         icon: PhFileText,
         path: '/quotations',
       },
       {
+        id: 'activations',
+        label: t('navigation.activations'),
+        icon: PhMegaphone,
+        path: '/activations',
+      },
+      {
         id: 'accounts',
-        label: 'Cuentas',
+        label: t('navigation.accounts'),
         icon: PhAddressBook,
         path: '/accounts',
       },
       {
         id: 'chat',
-        label: 'Comunicación',
+        label: t('navigation.chat'),
         icon: PhChatCircle,
         path: '/chat',
       },
       {
         id: 'analytics',
-        label: 'Analíticas',
+        label: t('navigation.analytics'),
         icon: PhChartLine,
         path: '/analytics',
+      },
+      {
+        id: 'landing-pages',
+        label: t('navigation.landingPages'),
+        icon: PhFileText,
+        path: '/landing-pages',
       },
     ],
   },
   {
     id: 'admin',
-    label: 'Administración',
+    label: t('navigation.administration'),
     icon: PhShield,
     roles: ['admin', 'super-admin'],
     children: [
       {
         id: 'organizations',
-        label: 'Organizaciones',
+        label: t('navigation.organizations'),
         icon: PhBuildings,
         path: '/admin/organizations',
         roles: ['admin', 'super-admin'],
       },
       {
         id: 'users',
-        label: 'Usuarios',
+        label: t('navigation.users'),
         icon: PhUsers,
         path: '/admin/users',
         roles: ['admin', 'super-admin'],
       },
       {
         id: 'roles-permissions',
-        label: 'Roles y Permisos',
+        label: t('navigation.rolesPermissions'),
         icon: PhKey,
         path: '/admin/roles-permissions',
         roles: ['admin', 'super-admin'],
@@ -119,7 +136,7 @@ const allNavigationItems = computed((): NavigationItem[] => [
   },
   {
     id: 'settings',
-    label: 'Configuración',
+    label: t('navigation.settings'),
     icon: PhGear,
     path: '/settings',
   },
@@ -205,10 +222,10 @@ onMounted(() => {
           class="flex-1 min-w-0 transition-opacity duration-300"
         >
           <h1 class="text-lg font-bold text-white truncate">
-            {{ organizationsStore.currentOrganization?.name || 'CRM System' }}
+            {{ organizationsStore.currentOrganization?.name || t('common.crmSystem') }}
           </h1>
           <p class="text-xs text-slate-400 mt-1 truncate">
-            Gestión de Clientes
+            {{ t('common.clientManagement') }}
           </p>
         </div>
       </div>
@@ -232,7 +249,7 @@ onMounted(() => {
       class="p-4 border-t border-slate-300 border-opacity-30 transition-opacity duration-300"
     >
       <h3 class="text-sm font-medium text-slate-100 mb-3">
-        Estado de Requests
+        {{ t('common.requestStatus') }}
       </h3>
       <div class="space-y-2">
         <div
@@ -242,7 +259,7 @@ onMounted(() => {
           class="flex items-center justify-between text-xs"
         >
           <span class="text-slate-200">
-            {{ STATUS_LABELS[status] }}
+            {{ getStatusLabel(status) }}
           </span>
           <span class="text-white font-medium">
             {{ summary.byStatus[status] || 0 }}
@@ -254,7 +271,7 @@ onMounted(() => {
       <div v-if="summary.conversionRate > 0" class="mt-3 pt-3 border-t border-slate-300 border-opacity-30">
         <div class="flex items-center justify-between text-xs">
           <span class="text-slate-200">
-            Tasa de Conversión
+            {{ t('common.conversionRate') }}
           </span>
           <span class="text-green-300 font-medium">
             {{ (summary.conversionRate * 100).toFixed(1) }}%
@@ -263,13 +280,21 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Language Selector -->
+    <div v-if="!sidebarStore.isCollapsed" class="p-4 border-t border-slate-300 border-opacity-30">
+      <h3 class="text-sm font-medium text-slate-100 mb-3">
+        {{ t('common.language') }}
+      </h3>
+      <LanguageSelector />
+    </div>
+
     <!-- Footer with Copyright and Toggle Button -->
     <div class="p-4 border-t border-slate-300 border-opacity-30">
       <div class="flex items-center justify-between">
         <!-- Copyright -->
         <div v-if="!sidebarStore.isCollapsed" class="flex-1">
           <p class="text-xs text-slate-200">
-            © 2024 CRM System
+            {{ t('common.copyright') }}
           </p>
         </div>
         
@@ -278,7 +303,7 @@ onMounted(() => {
           <button
             @click="sidebarStore.toggle"
             class="p-2 rounded-lg hover:bg-slate-600 transition-colors text-white"
-            :title="sidebarStore.isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
+            :title="sidebarStore.isCollapsed ? t('common.expandSidebar') : t('common.collapseSidebar')"
           >
             <PhList :size="16" />
           </button>

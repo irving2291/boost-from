@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/activations',
+    name: 'Activations',
+    component: () => import('../pages/ActivationsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     name: 'Admin',
     redirect: '/admin/organizations',
@@ -143,6 +149,30 @@ const routes: RouteRecordRaw[] = [
     path: '/components-test',
     name: 'ComponentsTest',
     component: () => import('../pages/ComponentsTestPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/landing-pages',
+    name: 'LandingPages',
+    component: () => import('../pages/LandingPagesPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/landing-pages/builder',
+    name: 'LandingPageBuilder',
+    component: () => import('../pages/LandingPageBuilder.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/landing-pages/builder/:id',
+    name: 'LandingPageBuilderEdit',
+    component: () => import('../pages/LandingPageBuilder.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/landing/:slug',
+    name: 'LandingPageViewer',
+    component: () => import('../pages/LandingPageViewer.vue'),
     meta: { requiresAuth: false }
   }
 ]

@@ -3,27 +3,46 @@
     <div class="space-y-6">
       <!-- Page Header -->
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Configuración</h1>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ t('navigation.settings') }}</h1>
         <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Administra la configuración del sistema y preferencias.
+          {{ t('settings.description') }}
         </p>
       </div>
 
       <!-- Settings Sections -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Language Settings -->
+        <Card>
+          <template #header>
+            <h3 class="text-lg font-semibold">{{ t('common.language') }}</h3>
+          </template>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                {{ t('settings.selectLanguage') }}
+              </label>
+              <LanguageSelector />
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                {{ t('settings.languageDescription') }}
+              </p>
+            </div>
+          </div>
+        </Card>
+
         <!-- Appearance Settings -->
         <Card>
           <template #header>
-            <h3 class="text-lg font-semibold">Apariencia</h3>
+            <h3 class="text-lg font-semibold">{{ t('settings.appearance') }}</h3>
           </template>
           
           <div class="space-y-6">
             <!-- Quick Dark Mode Toggle -->
             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
               <div>
-                <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">Modo Oscuro</h4>
+                <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('settings.darkMode') }}</h4>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Cambio rápido entre modo claro y oscuro
+                  {{ t('settings.darkModeDescription') }}
                 </p>
               </div>
               <Switch
@@ -37,7 +56,7 @@
             <!-- Advanced Theme Selection -->
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                Configuración Avanzada de Tema
+                {{ t('settings.advancedTheme') }}
               </label>
               <GroupButton
                 v-model="selectedTheme"
@@ -45,7 +64,7 @@
                 @change="handleThemeChange"
               />
               <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                El tema seleccionado se guardará automáticamente y se aplicará en toda la aplicación.
+                {{ t('settings.themeDescription') }}
               </p>
             </div>
           </div>
@@ -54,7 +73,7 @@
         <!-- General Settings -->
         <Card>
           <template #header>
-            <h3 class="text-lg font-semibold">Configuración General</h3>
+            <h3 class="text-lg font-semibold">{{ t('settings.general') }}</h3>
           </template>
           
           <div class="space-y-4">
@@ -189,35 +208,38 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { PhSun, PhMoon, PhDesktop } from '@phosphor-icons/vue'
 import Layout from '../components/layout/Layout.vue'
+import LanguageSelector from '../components/ui/LanguageSelector.vue'
 import { Button, Card, Input, Dropdown, ListView, GroupButton, Switch } from '../core'
 import { useThemeStore } from '../stores/theme'
 import type { DropdownItem, ListItem } from '../core/types'
 
+const { t } = useI18n()
 const themeStore = useThemeStore()
 
 // Theme settings
 const selectedTheme = ref(getInitialTheme())
 const isDarkModeEnabled = ref(themeStore.isDark)
 
-const themeOptions = [
+const themeOptions = computed(() => [
   {
-    label: 'Claro',
+    label: t('settings.lightTheme'),
     value: 'light',
     icon: PhSun
   },
   {
-    label: 'Oscuro',
+    label: t('settings.darkTheme'),
     value: 'dark',
     icon: PhMoon
   },
   {
-    label: 'Sistema',
+    label: t('settings.systemTheme'),
     value: 'system',
     icon: PhDesktop
   }
-]
+])
 
 // General settings
 const companyName = ref('CRM System')

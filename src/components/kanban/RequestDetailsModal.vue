@@ -22,10 +22,10 @@
         </button>
       </div>
 
-      <!-- Modal Content - Split Layout -->
+      <!-- Modal Content - Three Column Layout -->
       <div class="flex-1 flex overflow-hidden">
         <!-- Left Side - Request Information -->
-        <div class="w-1/2 p-6 overflow-y-auto border-r border-gray-200">
+        <div class="w-1/3 p-6 overflow-y-auto border-r border-gray-200">
           <div class="space-y-6">
             <!-- Status and Priority -->
             <div class="bg-gray-50 rounded-lg p-4">
@@ -120,8 +120,18 @@
           </div>
         </div>
 
+        <!-- Middle - Notification Panel -->
+        <div class="w-1/3 p-6 overflow-y-auto border-r border-gray-200">
+          <NotificationPanel
+            :request-id="request.id"
+            :client-email="request.email"
+            :client-phone="request.phone"
+            @notification-sent="handleNotificationSent"
+          />
+        </div>
+
         <!-- Right Side - Quotation Management -->
-        <div class="w-1/2 p-6 overflow-y-auto bg-gray-50">
+        <div class="w-1/3 p-6 overflow-y-auto bg-gray-50">
           <div class="space-y-6">
             <!-- Quotations Header -->
             <div class="flex items-center justify-between">
@@ -346,6 +356,7 @@ import {
 } from '@phosphor-icons/vue'
 import type { RequestInformation, Quotation, QuotationDetail, CreateQuotationRequest } from '../../types'
 import { useQuotationsStore } from '../../stores/quotations'
+import NotificationPanel from '../notifications/NotificationPanel.vue'
 
 interface Props {
   isOpen: boolean
@@ -528,6 +539,11 @@ const deleteQuotation = async (quotationId: string) => {
   if (confirm('¿Estás seguro de que quieres eliminar esta cotización?')) {
     await quotationsStore.deleteQuotation(quotationId)
   }
+}
+
+const handleNotificationSent = (notification: any) => {
+  console.log('Notification sent:', notification)
+  // You can add additional logic here if needed
 }
 
 // Watch for request changes

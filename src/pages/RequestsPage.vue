@@ -4,10 +4,19 @@
       <!-- Header with View Toggle -->
       <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Peticiones</h1>
-          <p class="text-gray-600">Gestiona todas las peticiones del CRM</p>
+          <h1 class="text-2xl font-bold text-gray-900">{{ t('requests.title') }}</h1>
+          <p class="text-gray-600">{{ t('requests.description') }}</p>
         </div>
         <div class="flex items-center space-x-4">
+          <!-- Date Range Filter -->
+          <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-600">{{ t('dateRange.filterByPeriod') }}:</span>
+            <DateRangePicker
+              v-model="dateRange"
+              @change="handleDateRangeChange"
+            />
+          </div>
+          
           <!-- View Toggle -->
           <div class="flex bg-gray-100 rounded-lg p-1">
             <button
@@ -22,7 +31,7 @@
               <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z"></path>
               </svg>
-              Kanban
+              {{ t('requests.kanbanView') }}
             </button>
             <button
               @click="viewMode = 'list'"
@@ -36,7 +45,7 @@
               <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
               </svg>
-              Lista
+              {{ t('requests.listView') }}
             </button>
           </div>
           
@@ -50,7 +59,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Actualizar
+            {{ t('requests.refresh') }}
           </button>
         </div>
       </div>
@@ -66,14 +75,14 @@
         <div v-else class="h-full bg-white rounded-lg shadow-sm border flex flex-col">
           <div class="p-6 border-b border-gray-200 flex-shrink-0">
             <div class="flex justify-between items-center">
-              <h2 class="text-lg font-semibold text-gray-900">Lista de Peticiones</h2>
+              <h2 class="text-lg font-semibold text-gray-900">{{ t('requests.listTitle') }}</h2>
               <div class="flex items-center space-x-4">
                 <!-- Search -->
                 <div class="relative">
                   <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="Buscar peticiones..."
+                    :placeholder="t('requests.searchPlaceholder')"
                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +95,7 @@
                   v-model="statusFilter"
                   class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Todos los estados</option>
+                  <option value="">{{ t('requests.allStatuses') }}</option>
                   <option v-for="status in availableStatuses" :key="status.id" :value="status.name">
                     {{ status.label }}
                   </option>
@@ -176,9 +185,9 @@
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
-              <h3 class="mt-2 text-sm font-medium text-gray-900">No hay peticiones</h3>
+              <h3 class="mt-2 text-sm font-medium text-gray-900">{{ t('requests.noRequests') }}</h3>
               <p class="mt-1 text-sm text-gray-500">
-                {{ searchQuery || statusFilter ? 'No se encontraron peticiones con los filtros aplicados.' : 'Aún no hay peticiones registradas.' }}
+                {{ searchQuery || statusFilter || dateRange.from || dateRange.to ? t('requests.noRequestsFiltered') : t('requests.noRequestsYet') }}
               </p>
             </div>
           </div>
@@ -189,13 +198,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Layout from '../components/layout/Layout.vue'
 import KanbanBoard from '../components/kanban/KanbanBoard.vue'
+import DateRangePicker from '../components/ui/DateRangePicker.vue'
 import { useRequestsStore } from '../stores/requests'
 import { useStatusStore } from '../stores/status'
 import type { RequestInformation } from '../types'
 
+const { t } = useI18n()
 const requestsStore = useRequestsStore()
 const statusStore = useStatusStore()
 
@@ -203,6 +215,7 @@ const statusStore = useStatusStore()
 const viewMode = ref<'kanban' | 'list'>('kanban')
 const searchQuery = ref('')
 const statusFilter = ref('')
+const dateRange = ref<{ from?: string; to?: string }>({})
 
 // Computed properties
 const loading = computed(() => requestsStore.loading)
@@ -227,6 +240,24 @@ const filteredRequests = computed(() => {
   // Apply status filter
   if (statusFilter.value) {
     filtered = filtered.filter(request => request.status.name === statusFilter.value)
+  }
+
+  // Apply date range filter
+  if (dateRange.value.from || dateRange.value.to) {
+    filtered = filtered.filter(request => {
+      const requestDate = new Date(request.createdAt)
+      const fromDate = dateRange.value.from ? new Date(dateRange.value.from) : null
+      const toDate = dateRange.value.to ? new Date(dateRange.value.to) : null
+
+      if (fromDate && toDate) {
+        return requestDate >= fromDate && requestDate <= toDate
+      } else if (fromDate) {
+        return requestDate >= fromDate
+      } else if (toDate) {
+        return requestDate <= toDate
+      }
+      return true
+    })
   }
 
   return filtered
@@ -276,6 +307,12 @@ const editRequest = (request: RequestInformation) => {
   console.log('Edit request:', request)
 }
 
+const handleDateRangeChange = (value: { from?: string; to?: string }) => {
+  dateRange.value = value
+  // Optionally save to localStorage
+  localStorage.setItem('requests_date_range', JSON.stringify(value))
+}
+
 // Lifecycle
 onMounted(async () => {
   await refreshData()
@@ -294,12 +331,24 @@ const loadViewPreference = () => {
   }
 }
 
-// Initialize view preference
+// Load date range preference from localStorage
+const loadDateRangePreference = () => {
+  const saved = localStorage.getItem('requests_date_range')
+  if (saved) {
+    try {
+      dateRange.value = JSON.parse(saved)
+    } catch (error) {
+      console.error('Error loading date range preference:', error)
+    }
+  }
+}
+
+// Initialize preferences
 onMounted(() => {
   loadViewPreference()
+  loadDateRangePreference()
 })
 
 // Watch for view mode changes and save preference
-import { watch } from 'vue'
 watch(viewMode, saveViewPreference)
 </script>
