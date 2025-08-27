@@ -196,6 +196,12 @@
           </div>
         </div>
       </div>
+
+      <!-- Request Information Form Modal -->
+      <RequestInformationForm
+        v-model="showFormModal"
+        @request-created="handleRequestCreated"
+      />
     </div>
   </Layout>
 </template>
@@ -206,6 +212,7 @@ import { useI18n } from 'vue-i18n'
 import Layout from '../components/layout/Layout.vue'
 import KanbanBoard from '../components/kanban/KanbanBoard.vue'
 import DateRangePicker from '../components/ui/DateRangePicker.vue'
+import RequestInformationForm from '../components/RequestInformationForm.vue'
 import { useRequestsStore } from '../stores/requests'
 import { useStatusStore } from '../stores/status'
 import type { RequestInformation } from '../types'
@@ -219,6 +226,7 @@ const viewMode = ref<'kanban' | 'list'>('kanban')
 const searchQuery = ref('')
 const statusFilter = ref('')
 const dateRange = ref<{ from?: string; to?: string }>({})
+const showFormModal = ref(false)
 
 // Computed properties
 const loading = computed(() => requestsStore.loading)
@@ -311,14 +319,18 @@ const editRequest = (request: RequestInformation) => {
 }
 
 const handleAddRequest = () => {
-  // TODO: Implement add request modal
-  console.log('Add new lead')
+  showFormModal.value = true
 }
 
 const handleDateRangeChange = (value: { from?: string; to?: string }) => {
   dateRange.value = value
   // Optionally save to localStorage
   localStorage.setItem('requests_date_range', JSON.stringify(value))
+}
+
+const handleRequestCreated = async () => {
+  // Refresh the requests data after a new request is created
+  await refreshData()
 }
 
 // Lifecycle
