@@ -4,7 +4,7 @@
       <!-- Sidebar Toggle Button (visible on smaller screens) -->
       <button
         @click="sidebarStore.toggle"
-        class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 md:hidden mr-4"
+        class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-white md:hidden mr-4"
         :title="sidebarStore.isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
       >
         <PhList :size="20" />
@@ -36,7 +36,7 @@
               networkStatus.isOnline ? 'bg-green-500' : 'bg-red-500'
             ]"
           />
-          <span class="text-sm text-slate-600 dark:text-slate-300">
+          <span class="text-sm text-slate-600 dark:text-white">
             {{ networkStatus.isOnline ? 'Conectado' : 'Desconectado' }}
           </span>
         </div>
@@ -45,7 +45,7 @@
         <div class="relative">
           <button
             @click="toggleThemeMenu"
-            class="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            class="p-2 text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
             :title="themeStore.isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
           >
             <PhSun v-if="themeStore.isDark" :size="20" />
@@ -59,7 +59,7 @@
           >
             <button
               @click="setTheme('light')"
-              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
               :class="{ 'bg-slate-100 dark:bg-gray-700': !themeStore.isDark }"
             >
               <PhSun :size="16" />
@@ -67,7 +67,7 @@
             </button>
             <button
               @click="setTheme('dark')"
-              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
               :class="{ 'bg-slate-100 dark:bg-gray-700': themeStore.isDark }"
             >
               <PhMoon :size="16" />
@@ -76,7 +76,7 @@
             <hr class="my-1 border-slate-200 dark:border-gray-700">
             <button
               @click="setTheme('system')"
-              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
             >
               <PhDesktop :size="16" />
               <span>Sistema</span>
@@ -85,7 +85,7 @@
         </div>
 
         <!-- Notifications -->
-        <button class="relative p-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+        <button class="relative p-2 text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
           <PhBell :size="20" />
           <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
             3
@@ -96,7 +96,7 @@
         <div class="relative">
           <button
             @click="toggleUserMenu"
-            class="flex items-center space-x-2 p-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            class="flex items-center space-x-2 p-2 text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
               <span class="text-white text-sm font-medium">
@@ -117,11 +117,11 @@
           >
             <div class="px-4 py-2 border-b border-slate-200 dark:border-gray-700">
               <p class="text-sm font-medium text-slate-900 dark:text-white">{{ authStore.user?.name || 'Usuario' }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">{{ authStore.user?.email }}</p>
+              <p class="text-xs text-slate-500 dark:text-white">{{ authStore.user?.email }}</p>
             </div>
             <router-link
               to="/settings"
-              class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700"
+              class="block px-4 py-2 text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700"
               @click="showUserMenu = false"
             >
               <div class="flex items-center space-x-2">
@@ -131,7 +131,7 @@
             </router-link>
             <router-link
               to="/settings"
-              class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700"
+              class="block px-4 py-2 text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700"
               @click="showUserMenu = false"
             >
               <div class="flex items-center space-x-2">
@@ -142,7 +142,7 @@
             <hr class="my-1 border-slate-200 dark:border-gray-700">
             <button
               @click="handleLogout"
-              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+              class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-gray-700 flex items-center space-x-2"
             >
               <PhSignOut :size="16" />
               <span>Cerrar Sesión</span>

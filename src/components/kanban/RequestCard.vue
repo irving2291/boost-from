@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
+    class="bg-white dark:bg-gray-700 rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
     :style="{ borderLeftColor: statusColor }"
     :class="{ 'opacity-50': isDragging }"
     draggable="true"
@@ -12,10 +12,10 @@
     <div class="p-4">
       <div class="flex items-start justify-between mb-2">
         <div class="flex-1 min-w-0">
-          <h4 class="text-base font-semibold text-charcoal truncate">
+          <h4 class="text-base font-semibold truncate">
             {{ getClientName(request) }}
           </h4>
-          <p class="text-sm text-slate-light mt-1">
+          <p class="text-sm text-slate-light dark:text-gray-400 mt-1">
             {{ request.email }}
           </p>
         </div>
@@ -42,14 +42,14 @@
       
       <!-- Contact Info -->
       <div class="mb-3">
-        <p class="text-sm text-slate-600">
+        <p class="text-sm text-gray-600 dark:text-gray-200">
           📞 {{ request.phone }}
         </p>
       </div>
 
       <!-- Time info -->
       <div class="mb-4">
-        <span class="text-sm text-slate-light">
+        <span class="text-sm text-slate-light dark:text-gray-400">
           {{ getTimeInfo(request.createdAt) }}
         </span>
       </div>

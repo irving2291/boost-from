@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col bg-gray-100 rounded-lg transition-all duration-200 min-h-[600px]">
+  <div class="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-200 min-h-[600px]">
     <!-- Column Header - Sticky and Draggable -->
     <div
       class="sticky top-0 z-20 flex items-center justify-between p-4 bg-slate-300 cursor-move"
@@ -8,7 +8,7 @@
       @dragend="handleHeaderDragEnd"
     >
       <div class="flex items-center space-x-3">
-        <h3 class="font-bold text-lg text-charcoal uppercase tracking-wide">
+        <h3 class="font-bold text-lg uppercase tracking-wide">
           {{ status.label }}
         </h3>
         <div class="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-sm font-semibold">

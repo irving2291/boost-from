@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
+  <div>
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-charcoal flex items-center">
         <PhBell :size="20" class="mr-2 text-blue-600" />
@@ -11,7 +11,7 @@
         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
       >
         <PhPlus :size="16" />
-        <span>Nueva Notificación</span>
+        <span>Nueva</span>
       </button>
     </div>
 

@@ -135,7 +135,7 @@ export const useRequestsStore = defineStore('requests', () => {
   })
 
   // Actions
-  const fetchRequests = async () => {
+  const fetchRequests = async (range:any|null) => {
     loading.value = true
     error.value = null
     
@@ -149,6 +149,12 @@ export const useRequestsStore = defineStore('requests', () => {
       
       // Add limit parameter
       params.append('limit', '999')
+      if (range?.from) {
+        params.append('from', range.from)
+      }
+      if (range?.to) {
+        params.append('to', range.to)
+      }
       
       url += `?${params.toString()}`
       

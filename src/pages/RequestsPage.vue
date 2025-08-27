@@ -2,15 +2,10 @@
   <Layout>
     <div class="h-full flex flex-col space-y-6 overflow-hidden">
       <!-- Header with View Toggle -->
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">{{ t('requests.title') }}</h1>
-          <p class="text-gray-600">{{ t('requests.description') }}</p>
-        </div>
+      <div class="flex justify-end items-center">
         <div class="flex items-center space-x-4">
           <!-- Date Range Filter -->
           <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-600">{{ t('dateRange.filterByPeriod') }}:</span>
             <DateRangePicker
               v-model="dateRange"
               @change="handleDateRangeChange"
@@ -18,11 +13,11 @@
           </div>
           
           <!-- View Toggle -->
-          <div class="flex bg-gray-100 rounded-lg p-1">
+          <div class="flex bg-gray-100 rounded-lg p-0">
             <button
               @click="viewMode = 'kanban'"
               :class="[
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none',
                 viewMode === 'kanban'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -36,7 +31,7 @@
             <button
               @click="viewMode = 'list'"
               :class="[
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none',
                 viewMode === 'list'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -53,13 +48,21 @@
           <button
             @click="refreshData"
             :disabled="loading"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            class="px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none disabled:opacity-50"
           >
             <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             {{ t('requests.refresh') }}
+          </button>
+
+          <button
+            @click="handleAddRequest"
+            class="bg-accent-blue hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg focus:outline-none transition-colors flex items-center space-x-2 flex-shrink-0"
+          >
+            <PhPlus :size="16" />
+            <span>Nuevo Lead</span>
           </button>
         </div>
       </div>
@@ -266,7 +269,7 @@ const filteredRequests = computed(() => {
 // Methods
 const refreshData = async () => {
   await Promise.all([
-    requestsStore.fetchRequests(),
+    requestsStore.fetchRequests(dateRange.value),
     statusStore.fetchStatuses()
   ])
 }
@@ -305,6 +308,11 @@ const viewRequestDetails = (request: RequestInformation) => {
 const editRequest = (request: RequestInformation) => {
   // Open request edit modal or navigate to edit page
   console.log('Edit request:', request)
+}
+
+const handleAddRequest = () => {
+  // TODO: Implement add request modal
+  console.log('Add new lead')
 }
 
 const handleDateRangeChange = (value: { from?: string; to?: string }) => {

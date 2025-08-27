@@ -1,13 +1,6 @@
 <template>
   <Layout>
     <div class="space-y-6">
-      <!-- Page Header -->
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p class="text-slate-600 mt-1">
-          Bienvenido al sistema CRM. Aquí tienes un resumen de tu actividad.
-        </p>
-      </div>
 
       <!-- KPI Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -55,7 +48,7 @@
 
       <!-- Additional Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-lg border border-slate-300">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-600">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-medium text-slate-600">Tiempo Promedio</h3>
             <PhChartLine :size="20" class="text-slate-400" />
@@ -68,7 +61,7 @@
           </p>
         </div>
 
-        <div class="bg-white p-6 rounded-lg border border-slate-300">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-600">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-medium text-slate-600">Nuevos Hoy</h3>
             <PhTrendUp :size="20" class="text-green-500" />
@@ -81,7 +74,7 @@
           </p>
         </div>
 
-        <div class="bg-white p-6 rounded-lg border border-slate-300">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-600">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-medium text-slate-600">Pendientes</h3>
             <PhClock :size="20" class="text-yellow-500" />

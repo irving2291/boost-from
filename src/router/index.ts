@@ -152,6 +152,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/test-date-range-picker',
+    name: 'TestDateRangePicker',
+    component: () => import('../pages/TestDateRangePickerPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/landing-pages',
     name: 'LandingPages',
     component: () => import('../pages/LandingPagesPage.vue'),

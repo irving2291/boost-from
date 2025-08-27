@@ -10,70 +10,6 @@ export const useStatusStore = defineStore('status', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Default statuses based on the image design
-  const defaultStatuses: StatusDefinition[] = [
-    {
-      id: 'nuevos',
-      name: 'NUEVOS',
-      label: 'Nuevos',
-      color: '#EF4444', // Red border for high priority
-      order: 1,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'contactados',
-      name: 'CONTACTADOS',
-      label: 'Contactados',
-      color: '#F59E0B', // Yellow border for medium priority
-      order: 2,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'calificados',
-      name: 'CALIFICADOS',
-      label: 'Calificados',
-      color: '#10B981', // Green border for low priority
-      order: 3,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'propuesta',
-      name: 'PROPUESTA',
-      label: 'Propuesta',
-      color: '#3B82F6', // Blue border
-      order: 4,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'negociacion',
-      name: 'NEGOCIACION',
-      label: 'Negociación',
-      color: '#8B5CF6', // Purple border
-      order: 5,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'ganados',
-      name: 'GANADOS',
-      label: 'Ganados',
-      color: '#10B981', // Green border
-      order: 6,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ]
-
   // Getters
   const sortedStatuses = computed(() => {
     // Sort by sort field if available, otherwise by order
@@ -174,13 +110,10 @@ export const useStatusStore = defineStore('status', () => {
       } else {
         // Fallback to default statuses if API response is unexpected
         console.warn('Unexpected API response format, using default statuses')
-        statuses.value = defaultStatuses
       }
     } catch (err) {
       console.error('Error fetching statuses from API:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching statuses'
-      // Fallback to default statuses on error
-      statuses.value = defaultStatuses
     } finally {
       loading.value = false
     }
@@ -201,7 +134,7 @@ export const useStatusStore = defineStore('status', () => {
     
     // Try to match common status patterns
     const lowerCode = code.toLowerCase()
-    if (lowerCode.includes('nuevo') || lowerCode.includes('new')) return '#EF4444'
+    if (lowerCode.includes('nuevo') || lowerCode.includes('new')) return '#3B82F6'
     if (lowerCode.includes('contactado') || lowerCode.includes('contact')) return '#F59E0B'
     if (lowerCode.includes('calificado') || lowerCode.includes('qualified')) return '#10B981'
     if (lowerCode.includes('propuesta') || lowerCode.includes('proposal')) return '#3B82F6'
@@ -310,11 +243,6 @@ export const useStatusStore = defineStore('status', () => {
     } finally {
       loading.value = false
     }
-  }
-
-  // Initialize with default statuses
-  if (statuses.value.length === 0) {
-    statuses.value = defaultStatuses
   }
 
   return {

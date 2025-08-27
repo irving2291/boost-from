@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const cardClasses = computed(() => cn(
-  'bg-white rounded-lg p-6 border border-slate-200',
+  'bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-600',
   props.className
 ))
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg p-6 border border-slate-200">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
     <h3 class="text-lg font-semibold text-slate-900 mb-4">Estado de Requests</h3>
     <div class="h-64">
       <canvas ref="chartCanvas"></canvas>

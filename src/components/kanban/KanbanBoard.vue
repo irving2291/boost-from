@@ -1,17 +1,5 @@
 <template>
   <div class="h-full flex flex-col bg-slate-200">
-    <!-- Header with title and new lead button -->
-    <div class="flex items-center justify-between mb-6 flex-shrink-0 bg-slate-200 p-4">
-      <h1 class="text-2xl font-bold text-charcoal">Pipeline de Ventas</h1>
-      <button
-        @click="handleAddRequest"
-        class="bg-accent-blue hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 flex-shrink-0"
-      >
-        <PhPlus :size="16" />
-        <span>Nuevo Lead</span>
-      </button>
-    </div>
-
     <!-- Kanban columns with horizontal scroll -->
     <div class="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar bg-slate-200">
       <div
@@ -189,11 +177,6 @@ const getRequestsByStatusName = (statusCode: string) => {
 const handleStatusUpdate = async (requestId: string, newStatusCode: string) => {
   // Update the request with the new status code
   await requestsStore.updateRequestStatus(requestId, newStatusCode)
-}
-
-const handleAddRequest = () => {
-  // TODO: Implement add request modal
-  console.log('Add new lead')
 }
 
 const handleAddRequestForStatus = (status: StatusDefinition) => {
