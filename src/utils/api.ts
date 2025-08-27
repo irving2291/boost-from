@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = ((import.meta as any)?.env?.VITE_API_BASE_URL as string) || 'https://api.boost.pitahayasoft.com/v1'
+export const API_BASE_URL = ((import.meta as any)?.env?.VITE_API_BASE_URL as string) || 'http://localhost:8080'
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -16,6 +16,11 @@ export const API_ENDPOINTS = {
     REQUESTS_STATUS: `${API_BASE_URL}/crm/requests-information/status`,
     REQUESTS_SUMMARY: `${API_BASE_URL}/crm/requests-information/summary`,
     QUOTATIONS: `${API_BASE_URL}/crm/quotations`,
+    // New endpoints from backend
+    ASSIGNEES: `${API_BASE_URL}/crm/assignees`,
+    ACCOUNTS: `${API_BASE_URL}/crm/accounts`,
+    ACTIVATIONS: `${API_BASE_URL}/crm/activations`,
+    LANDING_PAGES: `${API_BASE_URL}/crm/landing-pages`,
   },
   // RBAC endpoints aligned with Bouncer-style routes
   RBAC: {
@@ -47,13 +52,17 @@ export const API_ENDPOINTS = {
 } as const
 
 // API Helper functions
-export const createAuthHeaders = (token?: string) => {
+export const createAuthHeaders = (token?: string, organizationId?: string) => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  if (organizationId) {
+    headers['X-Org-Id'] = organizationId
   }
   
   return headers

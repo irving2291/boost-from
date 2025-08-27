@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { LandingPage, LandingPageFormSubmission, ContactFormConfig } from '../types/landing-pages'
+import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
+import { useAuthStore } from './auth'
 
 export const useLandingPagesStore = defineStore('landingPages', () => {
   // State
@@ -28,78 +30,39 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
   )
 
   // Actions
-  const fetchLandingPages = async () => {
+  const fetchLandingPages = async (published?: boolean) => {
     loading.value = true
     error.value = null
     
     try {
-      // Mock data for now - replace with actual API call
-      const mockPages: LandingPage[] = [
-        {
-          id: '1',
-          title: 'Página de Contacto Principal',
-          slug: 'contacto-principal',
-          htmlContent: '<div class="container mx-auto px-4 py-8"><h1>Contáctanos</h1><p>Estamos aquí para ayudarte</p></div>',
-          isPublished: true,
-          hasContactForm: true,
-          contactFormConfig: {
-            title: 'Formulario de Contacto',
-            description: 'Déjanos tus datos y te contactaremos pronto',
-            fields: [
-              {
-                id: 'firstName',
-                name: 'firstName',
-                label: 'Nombre',
-                type: 'text',
-                required: true,
-                placeholder: 'Tu nombre'
-              },
-              {
-                id: 'lastName',
-                name: 'lastName',
-                label: 'Apellido',
-                type: 'text',
-                required: true,
-                placeholder: 'Tu apellido'
-              },
-              {
-                id: 'email',
-                name: 'email',
-                label: 'Email',
-                type: 'email',
-                required: true,
-                placeholder: 'tu@email.com'
-              },
-              {
-                id: 'phone',
-                name: 'phone',
-                label: 'Teléfono',
-                type: 'phone',
-                required: false,
-                placeholder: '+593 99 999 9999'
-              },
-              {
-                id: 'message',
-                name: 'message',
-                label: 'Mensaje',
-                type: 'textarea',
-                required: true,
-                placeholder: 'Cuéntanos en qué podemos ayudarte'
-              }
-            ],
-            submitButtonText: 'Enviar Mensaje',
-            successMessage: '¡Gracias! Hemos recibido tu mensaje y te contactaremos pronto.'
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          createdBy: 'user-1',
-          organizationId: 'org-1'
-        }
-      ]
+      const authStore = useAuthStore()
+      let url = `${API_ENDPOINTS.CRM.LANDING_PAGES}`
       
-      landingPages.value = mockPages
+      if (published !== undefined) {
+        url += `?published=${published}`
+      }
+      
+      const response = await fetch(url, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+      })
+      
+      await handleApiError(response)
+      const data = await response.json()
+      
+      if (Array.isArray(data)) {
+        landingPages.value = data
+      } else if (data.data && Array.isArray(data.data)) {
+        landingPages.value = data.data
+      } else {
+        console.error('Unexpected API response format for landing pages:', data)
+        landingPages.value = []
+        throw new Error('Invalid API response format')
+      }
     } catch (err) {
+      console.error('Error fetching landing pages from API:', err)
       error.value = err instanceof Error ? err.message : 'Error loading landing pages'
+      landingPages.value = []
+      throw err
     } finally {
       loading.value = false
     }
@@ -110,16 +73,20 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     error.value = null
     
     try {
-      const newPage: LandingPage = {
-        ...pageData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+      const authStore = useAuthStore()
+      const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}`, {
+        method: 'POST',
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        body: JSON.stringify(pageData)
+      })
+      
+      await handleApiError(response)
+      const newPage = await response.json()
       
       landingPages.value.push(newPage)
       return newPage
     } catch (err) {
+      console.error('Error creating landing page:', err)
       error.value = err instanceof Error ? err.message : 'Error creating landing page'
       throw err
     } finally {
@@ -132,19 +99,24 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     error.value = null
     
     try {
+      const authStore = useAuthStore()
+      const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}/${id}`, {
+        method: 'PUT',
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        body: JSON.stringify(updates)
+      })
+      
+      await handleApiError(response)
+      const updatedPage = await response.json()
+      
       const index = landingPages.value.findIndex(page => page.id === id)
-      if (index === -1) {
-        throw new Error('Landing page not found')
+      if (index !== -1) {
+        landingPages.value[index] = updatedPage
       }
       
-      landingPages.value[index] = {
-        ...landingPages.value[index],
-        ...updates,
-        updatedAt: new Date().toISOString()
-      }
-      
-      return landingPages.value[index]
+      return updatedPage
     } catch (err) {
+      console.error('Error updating landing page:', err)
       error.value = err instanceof Error ? err.message : 'Error updating landing page'
       throw err
     } finally {
@@ -157,13 +129,20 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     error.value = null
     
     try {
-      const index = landingPages.value.findIndex(page => page.id === id)
-      if (index === -1) {
-        throw new Error('Landing page not found')
-      }
+      const authStore = useAuthStore()
+      const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}/${id}`, {
+        method: 'DELETE',
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+      })
       
-      landingPages.value.splice(index, 1)
+      await handleApiError(response)
+      
+      const index = landingPages.value.findIndex(page => page.id === id)
+      if (index !== -1) {
+        landingPages.value.splice(index, 1)
+      }
     } catch (err) {
+      console.error('Error deleting landing page:', err)
       error.value = err instanceof Error ? err.message : 'Error deleting landing page'
       throw err
     } finally {
@@ -184,8 +163,19 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     error.value = null
     
     try {
+      const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}/${pageId}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+      
+      await handleApiError(response)
+      const result = await response.json()
+      
       const submission: LandingPageFormSubmission = {
-        id: Date.now().toString(),
+        id: result.id || Date.now().toString(),
         landingPageId: pageId,
         formData,
         submittedAt: new Date().toISOString(),
@@ -193,11 +183,9 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
       }
       
       formSubmissions.value.push(submission)
-      
-      // Here you would typically also create a request in the requests store
-      // For now, we'll just return the submission
       return submission
     } catch (err) {
+      console.error('Error submitting contact form:', err)
       error.value = err instanceof Error ? err.message : 'Error submitting form'
       throw err
     } finally {

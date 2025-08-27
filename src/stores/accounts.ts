@@ -17,116 +17,6 @@ import type {
 import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from './auth'
 
-// Mock data for testing
-const mockAccounts: Account[] = [
-  {
-    id: '1',
-    type: 'person',
-    status: 'client',
-    firstName: 'Juan',
-    lastName: 'Pérez',
-    email: 'juan.perez@email.com',
-    phone: '+593 99 123 4567',
-    address: 'Av. Amazonas 123',
-    city: 'Quito',
-    country: 'Ecuador',
-    tags: ['VIP', 'Referido'],
-    priority: 'high',
-    assignedTo: 'user1',
-    assignedToName: 'María García',
-    totalValue: 15000,
-    potentialValue: 25000,
-    lastContactDate: '2024-01-15',
-    requestsCount: 3,
-    quotationsCount: 2,
-    conversationsCount: 5,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-15T00:00:00Z',
-    convertedAt: '2024-01-10T00:00:00Z'
-  },
-  {
-    id: '2',
-    type: 'company',
-    status: 'prospect',
-    companyName: 'TechCorp S.A.',
-    email: 'contacto@techcorp.com',
-    phone: '+593 2 234 5678',
-    address: 'Av. República 456',
-    city: 'Guayaquil',
-    country: 'Ecuador',
-    website: 'https://techcorp.com',
-    industry: 'Tecnología',
-    tags: ['Empresa', 'Software'],
-    priority: 'medium',
-    assignedTo: 'user2',
-    assignedToName: 'Carlos López',
-    totalValue: 0,
-    potentialValue: 50000,
-    lastContactDate: '2024-01-20',
-    requestsCount: 1,
-    quotationsCount: 1,
-    conversationsCount: 3,
-    createdAt: '2024-01-05T00:00:00Z',
-    updatedAt: '2024-01-20T00:00:00Z'
-  },
-  {
-    id: '3',
-    type: 'person',
-    status: 'prospect',
-    firstName: 'Ana',
-    lastName: 'Rodríguez',
-    email: 'ana.rodriguez@email.com',
-    phone: '+593 98 765 4321',
-    address: 'Calle 10 de Agosto 789',
-    city: 'Cuenca',
-    country: 'Ecuador',
-    tags: ['Nuevo', 'Web'],
-    priority: 'low',
-    assignedTo: 'user1',
-    assignedToName: 'María García',
-    totalValue: 0,
-    potentialValue: 8000,
-    lastContactDate: '2024-01-18',
-    requestsCount: 1,
-    quotationsCount: 0,
-    conversationsCount: 2,
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-18T00:00:00Z'
-  }
-]
-
-const mockStats: AccountStats = {
-  totalAccounts: 3,
-  totalClients: 1,
-  totalProspects: 2,
-  conversionRate: 0.33,
-  totalValue: 15000,
-  potentialValue: 83000,
-  byType: {
-    person: 2,
-    company: 1
-  },
-  byPriority: {
-    low: 1,
-    medium: 1,
-    high: 1
-  },
-  byAssignee: {
-    'user1': 2,
-    'user2': 1
-  },
-  recentActivity: [
-    {
-      id: '1',
-      accountId: '1',
-      type: 'status_changed',
-      description: 'Convertido de prospecto a cliente',
-      performedBy: 'user1',
-      performedByName: 'María García',
-      createdAt: '2024-01-10T00:00:00Z'
-    }
-  ]
-}
 
 export const useAccountsStore = defineStore('accounts', () => {
   // State
@@ -220,21 +110,61 @@ export const useAccountsStore = defineStore('accounts', () => {
     error.value = null
     
     try {
-      // Use mock data for now
-      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API delay
+      const authStore = useAuthStore()
+      let url = `${API_ENDPOINTS.CRM.ACCOUNTS}?page=${page}&perPage=${perPage}`
       
-      accounts.value = mockAccounts
+      // Add filters to URL if they exist
+      if (filters.value.search) url += `&search=${encodeURIComponent(filters.value.search)}`
+      if (filters.value.type && filters.value.type !== 'all') url += `&type=${filters.value.type}`
+      if (filters.value.status && filters.value.status !== 'all') url += `&status=${filters.value.status}`
+      if (filters.value.priority) url += `&priority=${filters.value.priority}`
+      if (filters.value.assignedTo?.length) {
+        filters.value.assignedTo.forEach(assignee => url += `&assignedTo[]=${assignee}`)
+      }
+      
+      const response = await fetch(url, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+      })
+      
+      await handleApiError(response)
+      const data = await response.json()
+      
+      if (data.data && Array.isArray(data.data)) {
+        accounts.value = data.data
+        pagination.value = {
+          total: data.total || 0,
+          page: data.page || page,
+          perPage: data.perPage || perPage,
+          pages: Math.ceil((data.total || 0) / perPage),
+          orderBy: 'createdAt',
+          direction: 'DESC'
+        }
+      } else {
+        console.error('Unexpected API response format for accounts:', data)
+        accounts.value = []
+        pagination.value = {
+          total: 0,
+          page: page,
+          perPage: perPage,
+          pages: 0,
+          orderBy: 'createdAt',
+          direction: 'DESC'
+        }
+        throw new Error('Invalid API response format')
+      }
+    } catch (err: any) {
+      console.error('Error fetching accounts from API:', err)
+      error.value = err.message || 'Error fetching accounts'
+      accounts.value = []
       pagination.value = {
-        total: mockAccounts.length,
+        total: 0,
         page: page,
         perPage: perPage,
-        pages: Math.ceil(mockAccounts.length / perPage),
+        pages: 0,
         orderBy: 'createdAt',
         direction: 'DESC'
       }
-    } catch (err: any) {
-      error.value = err.message || 'Error fetching accounts'
-      console.error('Error fetching accounts:', err)
+      throw err
     } finally {
       loading.value = false
     }
@@ -245,18 +175,20 @@ export const useAccountsStore = defineStore('accounts', () => {
     error.value = null
     
     try {
-      // Use mock data for now
-      await new Promise(resolve => setTimeout(resolve, 300)) // Simulate API delay
-      const account = mockAccounts.find((acc: Account) => acc.id === id)
-      if (account) {
-        currentAccount.value = account
-        return account
-      } else {
-        throw new Error('Account not found')
-      }
+      const authStore = useAuthStore()
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${id}`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+      })
+      
+      await handleApiError(response)
+      const account = await response.json()
+      
+      currentAccount.value = account
+      return account
     } catch (err: any) {
+      console.error('Error fetching account from API:', err)
       error.value = err.message || 'Error fetching account'
-      console.error('Error fetching account:', err)
+      currentAccount.value = null
       throw err
     } finally {
       loading.value = false
@@ -269,9 +201,9 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts`, {
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}`, {
         method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined),
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
         body: JSON.stringify(accountData)
       })
       
@@ -295,9 +227,9 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${id}`, {
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${id}`, {
         method: 'PUT',
-        headers: createAuthHeaders(authStore.token || undefined),
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
         body: JSON.stringify(accountData)
       })
       
@@ -326,9 +258,9 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${id}`, {
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${id}`, {
         method: 'DELETE',
-        headers: createAuthHeaders(authStore.token || undefined)
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -357,8 +289,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${accountId}/requests`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${accountId}/requests`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -380,8 +312,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${accountId}/quotations`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${accountId}/quotations`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -403,8 +335,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${accountId}/conversations`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${accountId}/conversations`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -426,8 +358,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${accountId}/notes`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${accountId}/notes`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -449,8 +381,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${accountId}/activities`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${accountId}/activities`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -472,9 +404,9 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/${accountId}/notes`, {
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/${accountId}/notes`, {
         method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined),
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
         body: JSON.stringify({
           content,
           type,
@@ -501,8 +433,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     
     try {
       const authStore = useAuthStore()
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/accounts/stats`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ACCOUNTS}/stats`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)

@@ -576,3 +576,174 @@ export interface UpdateAccountRequest {
   potentialValue?: number;
   status?: 'client' | 'prospect';
 }
+
+// Activation Management Types
+export interface Activation {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'promotion' | 'announcement' | 'reminder' | 'survey';
+  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  
+  // Target Configuration
+  channels: ('email' | 'sms' | 'whatsapp' | 'push' | 'web')[];
+  targetAudience?: string;
+  targetCriteria?: ActivationTargetCriteria;
+  
+  // Scheduling
+  scheduledFor?: string;
+  startDate?: string;
+  endDate?: string;
+  
+  // Content
+  content?: ActivationContent;
+  
+  // Metrics
+  sentCount?: number;
+  deliveredCount?: number;
+  openedCount?: number;
+  clickedCount?: number;
+  convertedCount?: number;
+  
+  // Management
+  createdBy: string;
+  createdByName?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  organizationId: string;
+  
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+export interface ActivationTargetCriteria {
+  accountTypes?: ('person' | 'company')[];
+  accountStatuses?: ('client' | 'prospect')[];
+  priorities?: ('low' | 'medium' | 'high')[];
+  tags?: string[];
+  cities?: string[];
+  assignees?: string[];
+  dateRange?: {
+    field: 'createdAt' | 'lastContactDate' | 'convertedAt';
+    from?: string;
+    to?: string;
+  };
+}
+
+export interface ActivationContent {
+  subject?: string;
+  message: string;
+  htmlContent?: string;
+  attachments?: ActivationAttachment[];
+  callToAction?: {
+    text: string;
+    url: string;
+  };
+  variables?: Record<string, string>; // For personalization
+}
+
+export interface ActivationAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+}
+
+export interface ActivationFilters {
+  search?: string;
+  type?: 'promotion' | 'announcement' | 'reminder' | 'survey' | 'all';
+  status?: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled' | 'all';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  createdBy?: string[];
+  assignedTo?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  channels?: ('email' | 'sms' | 'whatsapp' | 'push' | 'web')[];
+}
+
+export interface ActivationStats {
+  totalActivations: number;
+  activeActivations: number;
+  scheduledActivations: number;
+  completedActivations: number;
+  totalSent: number;
+  totalDelivered: number;
+  totalOpened: number;
+  totalClicked: number;
+  totalConverted: number;
+  avgOpenRate: number;
+  avgClickRate: number;
+  avgConversionRate: number;
+  byType: {
+    promotion: number;
+    announcement: number;
+    reminder: number;
+    survey: number;
+  };
+  byStatus: {
+    draft: number;
+    scheduled: number;
+    active: number;
+    completed: number;
+    cancelled: number;
+  };
+  byChannel: {
+    email: number;
+    sms: number;
+    whatsapp: number;
+    push: number;
+    web: number;
+  };
+  recentActivity: ActivationActivity[];
+}
+
+export interface ActivationActivity {
+  id: string;
+  activationId: string;
+  type: 'created' | 'scheduled' | 'started' | 'completed' | 'cancelled' | 'updated';
+  description: string;
+  metadata?: Record<string, any>;
+  performedBy: string;
+  performedByName: string;
+  createdAt: string;
+}
+
+export interface CreateActivationRequest {
+  title: string;
+  description?: string;
+  type: 'promotion' | 'announcement' | 'reminder' | 'survey';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  channels: ('email' | 'sms' | 'whatsapp' | 'push' | 'web')[];
+  targetAudience?: string;
+  targetCriteria?: ActivationTargetCriteria;
+  scheduledFor?: string;
+  startDate?: string;
+  endDate?: string;
+  content?: ActivationContent;
+  assignedTo?: string;
+}
+
+export interface UpdateActivationRequest {
+  title?: string;
+  description?: string;
+  type?: 'promotion' | 'announcement' | 'reminder' | 'survey';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  channels?: ('email' | 'sms' | 'whatsapp' | 'push' | 'web')[];
+  targetAudience?: string;
+  targetCriteria?: ActivationTargetCriteria;
+  scheduledFor?: string;
+  startDate?: string;
+  endDate?: string;
+  content?: ActivationContent;
+  assignedTo?: string;
+}
+
+export interface ActivationStatusUpdate {
+  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
+  scheduledFor?: string;
+  reason?: string;
+}

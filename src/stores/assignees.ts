@@ -22,81 +22,6 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const error = ref<string | null>(null)
   const filters = ref<AssigneeFilters>({})
 
-  // Mock data for development
-  const mockAssignees: Assignee[] = [
-    {
-      id: '1',
-      firstName: 'Juan',
-      lastName: 'Pérez',
-      email: 'juan.perez@company.com',
-      phone: '+593987654321',
-      avatar: '',
-      active: true,
-      role: 'Sales Representative',
-      department: 'Ventas',
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: '2',
-      firstName: 'María',
-      lastName: 'González',
-      email: 'maria.gonzalez@company.com',
-      phone: '+593987654322',
-      avatar: '',
-      active: true,
-      role: 'Senior Sales Representative',
-      department: 'Ventas',
-      createdAt: '2024-01-10T10:00:00Z',
-      updatedAt: '2024-01-10T10:00:00Z'
-    },
-    {
-      id: '3',
-      firstName: 'Carlos',
-      lastName: 'Rodríguez',
-      email: 'carlos.rodriguez@company.com',
-      phone: '+593987654323',
-      avatar: '',
-      active: true,
-      role: 'Sales Manager',
-      department: 'Ventas',
-      createdAt: '2024-01-05T10:00:00Z',
-      updatedAt: '2024-01-05T10:00:00Z'
-    }
-  ]
-
-  const mockAssignmentRules: AssignmentRule[] = [
-    {
-      id: '1',
-      name: 'Distribución Equitativa',
-      description: 'Asigna peticiones de forma equitativa entre todos los representantes activos',
-      active: true,
-      priority: 1,
-      conditions: [],
-      assignmentType: 'round_robin',
-      assigneeIds: ['1', '2', '3'],
-      createdAt: '2024-01-01T10:00:00Z',
-      updatedAt: '2024-01-01T10:00:00Z'
-    },
-    {
-      id: '2',
-      name: 'Peticiones VIP',
-      description: 'Asigna peticiones de alto valor al manager',
-      active: true,
-      priority: 2,
-      conditions: [
-        {
-          field: 'amount',
-          operator: 'greater_than',
-          value: 10000
-        }
-      ],
-      assignmentType: 'manual',
-      assigneeIds: ['3'],
-      createdAt: '2024-01-01T10:00:00Z',
-      updatedAt: '2024-01-01T10:00:00Z'
-    }
-  ]
 
   // Getters
   const activeAssignees = computed(() => 
@@ -138,8 +63,8 @@ export const useAssigneesStore = defineStore('assignees', () => {
     try {
       const authStore = useAuthStore()
       
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignees`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+      const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}`, {
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -150,14 +75,15 @@ export const useAssigneesStore = defineStore('assignees', () => {
       } else if (data.data && Array.isArray(data.data)) {
         assignees.value = data.data
       } else {
-        console.warn('Unexpected API response format for assignees')
-        assignees.value = mockAssignees
+        console.error('Unexpected API response format for assignees:', data)
+        assignees.value = []
+        throw new Error('Invalid API response format')
       }
     } catch (err) {
       console.error('Error fetching assignees from API:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching assignees'
-      // Fallback to mock data
-      assignees.value = mockAssignees
+      assignees.value = []
+      throw err
     } finally {
       loading.value = false
     }
@@ -169,7 +95,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
     
     try {
       const authStore = useAuthStore()
-      let url = `${API_ENDPOINTS.CRM.REQUESTS}/assignees/stats`
+      let url = `${API_ENDPOINTS.CRM.ASSIGNEES}/stats`
       
       if (filters) {
         const params = new URLSearchParams()
@@ -189,7 +115,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       }
       
       const response = await fetch(url, {
-        headers: createAuthHeaders(authStore.token || undefined)
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -200,15 +126,15 @@ export const useAssigneesStore = defineStore('assignees', () => {
       } else if (data.data && Array.isArray(data.data)) {
         assigneeStats.value = data.data
       } else {
-        console.warn('Unexpected API response format for assignee stats')
-        // Generate mock stats based on current assignees
-        assigneeStats.value = generateMockStats()
+        console.error('Unexpected API response format for assignee stats:', data)
+        assigneeStats.value = []
+        throw new Error('Invalid API response format')
       }
     } catch (err) {
       console.error('Error fetching assignee stats from API:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching assignee stats'
-      // Fallback to mock data
-      assigneeStats.value = generateMockStats()
+      assigneeStats.value = []
+      throw err
     } finally {
       loading.value = false
     }
@@ -222,7 +148,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       const authStore = useAuthStore()
       
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules`, {
-        headers: createAuthHeaders(authStore.token || undefined)
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -233,14 +159,15 @@ export const useAssigneesStore = defineStore('assignees', () => {
       } else if (data.data && Array.isArray(data.data)) {
         assignmentRules.value = data.data
       } else {
-        console.warn('Unexpected API response format for assignment rules')
-        assignmentRules.value = mockAssignmentRules
+        console.error('Unexpected API response format for assignment rules:', data)
+        assignmentRules.value = []
+        throw new Error('Invalid API response format')
       }
     } catch (err) {
       console.error('Error fetching assignment rules from API:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching assignment rules'
-      // Fallback to mock data
-      assignmentRules.value = mockAssignmentRules
+      assignmentRules.value = []
+      throw err
     } finally {
       loading.value = false
     }
@@ -252,7 +179,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/${reassignment.requestId}/reassign`, {
         method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined),
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
         body: JSON.stringify({
           toAssigneeId: reassignment.toAssigneeId,
           reason: reassignment.reason
@@ -278,7 +205,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules`, {
         method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined),
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
         body: JSON.stringify(rule)
       })
       
@@ -300,7 +227,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules/${ruleId}`, {
         method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined),
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
         body: JSON.stringify(updates)
       })
       
@@ -326,7 +253,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules/${ruleId}`, {
         method: 'DELETE',
-        headers: createAuthHeaders(authStore.token || undefined)
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -353,26 +280,6 @@ export const useAssigneesStore = defineStore('assignees', () => {
     realTimeStats.value[stats.assigneeId] = stats
   }
 
-  // Helper function to generate mock stats
-  const generateMockStats = (): AssigneeStats[] => {
-    return assignees.value.map(assignee => ({
-      assigneeId: assignee.id,
-      assignee,
-      totalRequests: Math.floor(Math.random() * 50) + 10,
-      completedRequests: Math.floor(Math.random() * 30) + 5,
-      pendingRequests: Math.floor(Math.random() * 15) + 2,
-      conversionRate: Math.random() * 0.4 + 0.1, // 10% to 50%
-      avgResponseTime: Math.random() * 8 + 1, // 1 to 9 hours
-      avgCloseTime: Math.random() * 10 + 2 // 2 to 12 days
-    }))
-  }
-
-  // Initialize with mock data
-  if (assignees.value.length === 0) {
-    assignees.value = mockAssignees
-    assignmentRules.value = mockAssignmentRules
-    assigneeStats.value = generateMockStats()
-  }
 
   return {
     // State
