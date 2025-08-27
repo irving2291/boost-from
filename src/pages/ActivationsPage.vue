@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   PhPlus, PhArrowClockwise, PhMagnifyingGlass, PhUsers, PhCalendar,
   PhEnvelope, PhDeviceMobile, PhWhatsappLogo, PhMegaphone,
@@ -221,20 +221,7 @@ import {
 import Layout from '../components/layout/Layout.vue'
 import ActivationModal from '../components/activations/ActivationModal.vue'
 import ActivationDetailsModal from '../components/activations/ActivationDetailsModal.vue'
-
-interface Activation {
-  id: string
-  title: string
-  description: string
-  type: 'promotion' | 'announcement' | 'reminder' | 'survey'
-  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  channels: string[]
-  targetAudience?: string
-  scheduledFor?: string
-  createdAt: string
-  updatedAt?: string
-}
+import { activationService, type Activation } from '../services/activationService'
 
 // State
 const loading = ref(false)
@@ -245,33 +232,10 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDetailsModal = ref(false)
 const selectedActivation = ref<Activation | null>(null)
-
-// Mock data - replace with actual API calls
-const activations = ref<Activation[]>([
-  {
-    id: '1',
-    title: 'Promoción Black Friday',
-    description: 'Descuentos especiales del 50% en todos nuestros servicios durante el Black Friday',
-    type: 'promotion',
-    status: 'scheduled',
-    priority: 'high',
-    channels: ['email', 'sms', 'whatsapp'],
-    targetAudience: 'Clientes activos',
-    scheduledFor: '2024-11-29T09:00:00Z',
-    createdAt: '2024-11-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    title: 'Encuesta de Satisfacción',
-    description: 'Queremos conocer tu opinión sobre nuestros servicios',
-    type: 'survey',
-    status: 'active',
-    priority: 'medium',
-    channels: ['email'],
-    targetAudience: 'Clientes con servicios completados',
-    createdAt: '2024-11-10T14:30:00Z'
-  }
-])
+const activations = ref<Activation[]>([])
+const totalActivations = ref(0)
+const currentPage = ref(1)
+const perPage = ref(20)
 
 // Computed
 const filteredActivations = computed(() => {
@@ -279,32 +243,47 @@ const filteredActivations = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(activation =>
+    filtered = filtered.filter((activation: Activation) =>
       activation.title.toLowerCase().includes(query) ||
       activation.description.toLowerCase().includes(query)
     )
   }
 
   if (statusFilter.value) {
-    filtered = filtered.filter(activation => activation.status === statusFilter.value)
+    filtered = filtered.filter((activation: Activation) => activation.status === statusFilter.value)
   }
 
   if (typeFilter.value) {
-    filtered = filtered.filter(activation => activation.type === typeFilter.value)
+    filtered = filtered.filter((activation: Activation) => activation.type === typeFilter.value)
   }
 
   return filtered
 })
 
 // Methods
-const refreshData = async () => {
+const loadActivations = async () => {
   loading.value = true
   try {
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await activationService.listActivations({
+      page: currentPage.value,
+      perPage: perPage.value,
+      status: statusFilter.value || undefined,
+      type: typeFilter.value || undefined,
+      search: searchQuery.value || undefined
+    })
+    
+    activations.value = response.data
+    totalActivations.value = response.total
+  } catch (error) {
+    console.error('Error loading activations:', error)
+    // You might want to show a toast notification here
   } finally {
     loading.value = false
   }
+}
+
+const refreshData = async () => {
+  await loadActivations()
 }
 
 const viewActivation = (activation: Activation) => {
@@ -348,7 +327,7 @@ const closeDetailsModal = () => {
 const handleActivationSaved = (activation: Activation) => {
   if (showEditModal.value) {
     // Update existing
-    const index = activations.value.findIndex(a => a.id === activation.id)
+    const index = activations.value.findIndex((a: Activation) => a.id === activation.id)
     if (index !== -1) {
       activations.value[index] = activation
     }
@@ -433,8 +412,14 @@ const formatDate = (dateString: string) => {
   })
 }
 
+// Watchers for filters to reload data when they change
+watch([searchQuery, statusFilter, typeFilter], () => {
+  currentPage.value = 1 // Reset to first page when filters change
+  loadActivations()
+}, { debounce: 300 })
+
 onMounted(() => {
-  refreshData()
+  loadActivations()
 })
 </script>
 

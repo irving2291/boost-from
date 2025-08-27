@@ -181,20 +181,7 @@ import {
   PhMegaphone, PhSpeakerHigh, PhBell, PhQuestion
 } from '@phosphor-icons/vue'
 import NotificationPanel from '../notifications/NotificationPanel.vue'
-
-interface Activation {
-  id: string
-  title: string
-  description: string
-  type: 'promotion' | 'announcement' | 'reminder' | 'survey'
-  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  channels: string[]
-  targetAudience?: string
-  scheduledFor?: string
-  createdAt: string
-  updatedAt?: string
-}
+import { activationService, type Activation } from '../../services/activationService'
 
 interface Props {
   isOpen: boolean
@@ -218,31 +205,79 @@ const editActivation = () => {
   }
 }
 
-const activateNow = () => {
+const activateNow = async () => {
+  if (!props.activation) return
+  
   if (confirm('¿Estás seguro de que quieres activar esta activación ahora?')) {
-    // TODO: Implement activation logic
-    console.log('Activating:', props.activation?.id)
+    try {
+      await activationService.changeActivationStatus(props.activation.id, 'active')
+      // Update the activation status locally or emit an event to refresh
+      if (props.activation) {
+        props.activation.status = 'active'
+      }
+      alert('Activación activada exitosamente')
+    } catch (error) {
+      console.error('Error activating:', error)
+      alert('Error al activar la activación. Por favor intenta nuevamente.')
+    }
   }
 }
 
-const pauseActivation = () => {
+const pauseActivation = async () => {
+  if (!props.activation) return
+  
   if (confirm('¿Estás seguro de que quieres pausar esta activación?')) {
-    // TODO: Implement pause logic
-    console.log('Pausing:', props.activation?.id)
+    try {
+      await activationService.changeActivationStatus(props.activation.id, 'draft')
+      // Update the activation status locally or emit an event to refresh
+      if (props.activation) {
+        props.activation.status = 'draft'
+      }
+      alert('Activación pausada exitosamente')
+    } catch (error) {
+      console.error('Error pausing:', error)
+      alert('Error al pausar la activación. Por favor intenta nuevamente.')
+    }
   }
 }
 
-const cancelActivation = () => {
+const cancelActivation = async () => {
+  if (!props.activation) return
+  
   if (confirm('¿Estás seguro de que quieres cancelar esta activación? Esta acción no se puede deshacer.')) {
-    // TODO: Implement cancellation logic
-    console.log('Cancelling:', props.activation?.id)
+    try {
+      await activationService.changeActivationStatus(props.activation.id, 'cancelled')
+      // Update the activation status locally or emit an event to refresh
+      if (props.activation) {
+        props.activation.status = 'cancelled'
+      }
+      alert('Activación cancelada exitosamente')
+    } catch (error) {
+      console.error('Error cancelling:', error)
+      alert('Error al cancelar la activación. Por favor intenta nuevamente.')
+    }
   }
 }
 
-const duplicateActivation = () => {
-  if (props.activation) {
-    // TODO: Implement duplication logic
-    console.log('Duplicating:', props.activation.id)
+const duplicateActivation = async () => {
+  if (!props.activation) return
+  
+  try {
+    const duplicateData = {
+      title: `${props.activation.title} (Copia)`,
+      description: props.activation.description,
+      type: props.activation.type,
+      priority: props.activation.priority,
+      channels: [...props.activation.channels],
+      targetAudience: props.activation.targetAudience
+    }
+    
+    await activationService.createActivation(duplicateData)
+    alert('Activación duplicada exitosamente')
+    emit('close') // Close the modal after duplication
+  } catch (error) {
+    console.error('Error duplicating:', error)
+    alert('Error al duplicar la activación. Por favor intenta nuevamente.')
   }
 }
 

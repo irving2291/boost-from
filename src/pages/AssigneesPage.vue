@@ -326,6 +326,12 @@
                   >
                     Editar
                   </button>
+                  <button
+                    @click="deleteRule(rule)"
+                    class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                  >
+                    Eliminar
+                  </button>
                 </div>
               </div>
             </div>
@@ -407,6 +413,16 @@
           </div>
         </div>
       </div>
+
+      <!-- Assignment Rule Form Modal -->
+      <AssignmentRuleModal
+        :is-open="showRuleFormModal"
+        :rule="selectedRule"
+        :available-assignees="activeAssignees"
+        :loading="ruleFormLoading"
+        @close="handleCloseRuleModal"
+        @save="handleSaveRule"
+      />
     </div>
   </Layout>
 </template>
@@ -414,6 +430,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import Layout from '../components/layout/Layout.vue'
+import AssignmentRuleModal from '../components/assignees/AssignmentRuleModal.vue'
 import { useAssigneesStore } from '../stores/assignees'
 import type { Assignee, AssignmentRule } from '../types'
 
@@ -423,10 +440,13 @@ const assigneesStore = useAssigneesStore()
 const dateFrom = ref('')
 const dateTo = ref('')
 const showRulesModal = ref(false)
+const showRuleFormModal = ref(false)
 const showReassignModal = ref(false)
 const selectedAssignee = ref<Assignee | null>(null)
+const selectedRule = ref<AssignmentRule | null>(null)
 const reassignToId = ref('')
 const reassignReason = ref('')
+const ruleFormLoading = ref(false)
 
 // Computed properties
 const loading = computed(() => assigneesStore.loading)
@@ -485,13 +505,47 @@ const toggleRule = async (rule: AssignmentRule) => {
 }
 
 const editRule = (rule: AssignmentRule) => {
-  // Open rule editing modal
-  console.log('Edit rule:', rule)
+  selectedRule.value = rule
+  showRuleFormModal.value = true
 }
 
 const createNewRule = () => {
-  // Open new rule creation modal
-  console.log('Create new rule')
+  selectedRule.value = null
+  showRuleFormModal.value = true
+}
+
+const handleSaveRule = async (ruleData: Omit<AssignmentRule, 'id' | 'createdAt' | 'updatedAt'>) => {
+  ruleFormLoading.value = true
+  
+  try {
+    if (selectedRule.value) {
+      // Update existing rule
+      await assigneesStore.updateAssignmentRule(selectedRule.value.id, ruleData)
+    } else {
+      // Create new rule
+      await assigneesStore.createAssignmentRule(ruleData)
+    }
+    
+    showRuleFormModal.value = false
+    selectedRule.value = null
+    await refreshData()
+  } catch (error) {
+    console.error('Error saving rule:', error)
+  } finally {
+    ruleFormLoading.value = false
+  }
+}
+
+const handleCloseRuleModal = () => {
+  showRuleFormModal.value = false
+  selectedRule.value = null
+}
+
+const deleteRule = async (rule: AssignmentRule) => {
+  if (confirm(`¿Estás seguro de que quieres eliminar la regla "${rule.name}"?`)) {
+    await assigneesStore.deleteAssignmentRule(rule.id)
+    await refreshData()
+  }
 }
 
 const getAssignmentTypeLabel = (type: string) => {
@@ -499,7 +553,8 @@ const getAssignmentTypeLabel = (type: string) => {
     'round_robin': 'Rotación',
     'load_balanced': 'Balanceado por carga',
     'skill_based': 'Basado en habilidades',
-    'manual': 'Manual'
+    'manual': 'Manual',
+    'random': 'Aleatorio'
   }
   return labels[type as keyof typeof labels] || type
 }

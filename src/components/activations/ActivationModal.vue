@@ -226,20 +226,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import {
   PhX, PhEnvelope, PhDeviceMobile, PhWhatsappLogo
 } from '@phosphor-icons/vue'
-
-interface Activation {
-  id: string
-  title: string
-  description: string
-  type: 'promotion' | 'announcement' | 'reminder' | 'survey'
-  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  channels: string[]
-  targetAudience?: string
-  scheduledFor?: string
-  createdAt: string
-  updatedAt?: string
-}
+import { activationService, type Activation } from '../../services/activationService'
 
 interface Props {
   isOpen: boolean
@@ -324,28 +311,29 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    const activationData: Activation = {
-      id: props.activation?.id || Date.now().toString(),
+    const activationData = {
       title: form.value.title,
       description: form.value.description,
       type: form.value.type as Activation['type'],
-      status: form.value.scheduleForLater && form.value.scheduledDate && form.value.scheduledTime 
-        ? 'scheduled' 
-        : form.value.status,
       priority: form.value.priority,
       channels: [...form.value.channels],
       targetAudience: form.value.targetAudience || undefined,
       scheduledFor: form.value.scheduleForLater && form.value.scheduledDate && form.value.scheduledTime
         ? `${form.value.scheduledDate}T${form.value.scheduledTime}:00Z`
-        : undefined,
-      createdAt: props.activation?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+        : undefined
     }
 
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    let savedActivation: Activation
 
-    emit('saved', activationData)
+    if (props.activation) {
+      // Update existing activation
+      savedActivation = await activationService.updateActivation(props.activation.id, activationData)
+    } else {
+      // Create new activation
+      savedActivation = await activationService.createActivation(activationData)
+    }
+
+    emit('saved', savedActivation)
   } catch (error) {
     console.error('Error saving activation:', error)
     alert('Error al guardar la activación. Por favor intenta nuevamente.')
@@ -358,7 +346,7 @@ const handleSubmit = async () => {
 watch(() => props.activation, loadActivation, { immediate: true })
 
 // Watch for modal open/close
-watch(() => props.isOpen, (isOpen) => {
+watch(() => props.isOpen, (isOpen: boolean) => {
   if (isOpen) {
     loadActivation()
   }

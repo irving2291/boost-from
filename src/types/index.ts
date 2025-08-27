@@ -334,15 +334,15 @@ export interface AssignmentRule {
   active: boolean;
   priority: number;
   conditions: AssignmentCondition[];
-  assignmentType: 'round_robin' | 'load_balanced' | 'skill_based' | 'manual';
+  assignmentType: 'round_robin' | 'load_balanced' | 'skill_based' | 'manual' | 'random';
   assigneeIds: string[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AssignmentCondition {
-  field: 'source' | 'priority' | 'amount' | 'location' | 'time' | 'tags';
-  operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'in_range';
+  field: 'programInterestId' | 'leadOriginId' | 'city' | 'firstName' | 'lastName' | 'email' | 'phone' | 'status' | 'amount' | 'required_skills';
+  operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater_than' | 'less_than' | 'greater_equal' | 'less_equal' | 'in' | 'not_in';
   value: string | number | string[];
 }
 
