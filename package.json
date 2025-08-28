@@ -16,6 +16,7 @@
     "@popperjs/core": "^2.11.8",
     "@vueuse/components": "^10.7.0",
     "@vueuse/core": "^10.7.0",
+    "axios": "^1.11.0",
     "chart.js": "^4.4.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

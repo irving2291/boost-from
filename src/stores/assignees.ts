@@ -1,15 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { 
-  Assignee, 
-  AssigneeStats, 
-  AssignmentRule, 
-  RequestReassignment, 
-  AssigneeFilters, 
+import axios from 'axios'
+import type {
+  Assignee,
+  AssigneeStats,
+  AssignmentRule,
+  RequestReassignment,
+  AssigneeFilters,
   AssigneeMetrics,
-  RealTimeStats 
+  RealTimeStats
 } from '../types'
-import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
+import { API_BASE_URL, API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from './auth'
 
 export const useAssigneesStore = defineStore('assignees', () => {
@@ -18,6 +19,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const assigneeStats = ref<AssigneeStats[]>([])
   const assignmentRules = ref<AssignmentRule[]>([])
   const realTimeStats = ref<Record<string, RealTimeStats>>({})
+  const searchResults = ref<Assignee[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const filters = ref<AssigneeFilters>({})
@@ -59,7 +61,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const fetchAssignees = async () => {
     loading.value = true
     error.value = null
-    
+    console.log('si aqui entra')
     try {
       const authStore = useAuthStore()
       
@@ -69,7 +71,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       
       await handleApiError(response)
       const data = await response.json()
-      
+      console.log(data)
       if (Array.isArray(data)) {
         assignees.value = data
       } else if (data.data && Array.isArray(data.data)) {
@@ -280,6 +282,121 @@ export const useAssigneesStore = defineStore('assignees', () => {
     realTimeStats.value[stats.assigneeId] = stats
   }
 
+  const searchUsers = async (query: string) => {
+    loading.value = true
+    error.value = null
+    searchResults.value = [] // Initialize as empty array
+
+    try {
+      const authStore = useAuthStore()
+
+      // Use axios for the request
+      const response = await axios.get(`${API_BASE_URL}/auth/my-org/users`, {
+        params: { search: query },
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+      })
+
+      const data = response.data
+
+      // Handle the new API response format
+      if (data.data && Array.isArray(data.data)) {
+        searchResults.value = data.data
+      } else if (Array.isArray(data)) {
+        searchResults.value = data
+      } else {
+        console.error('Unexpected API response format for user search:', data)
+        searchResults.value = []
+        throw new Error('Invalid API response format')
+      }
+    } catch (err) {
+      console.error('Error searching users from API:', err)
+      error.value = err instanceof Error ? err.message : 'Error searching users'
+      searchResults.value = []
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const clearSearchResults = () => {
+    searchResults.value = []
+  }
+
+  const createAssignee = async (assigneeData: Omit<Assignee, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const authStore = useAuthStore()
+
+      const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}`, {
+        method: 'POST',
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        body: JSON.stringify(assigneeData)
+      })
+
+      await handleApiError(response)
+      const newAssignee = await response.json()
+
+      // Add to the assignees list
+      assignees.value.push(newAssignee)
+
+      return newAssignee
+    } catch (err) {
+      console.error('Error creating assignee:', err)
+      error.value = err instanceof Error ? err.message : 'Error creating assignee'
+      throw err
+    }
+  }
+
+  const updateAssignee = async (assigneeId: string, updates: Partial<Assignee>) => {
+    try {
+      const authStore = useAuthStore()
+
+      const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}/${assigneeId}`, {
+        method: 'PATCH',
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        body: JSON.stringify(updates)
+      })
+
+      await handleApiError(response)
+      const updatedAssignee = await response.json()
+
+      // Update in the assignees list
+      const index = assignees.value.findIndex(a => a.id === assigneeId)
+      if (index > -1) {
+        assignees.value[index] = updatedAssignee
+      }
+
+      return updatedAssignee
+    } catch (err) {
+      console.error('Error updating assignee:', err)
+      error.value = err instanceof Error ? err.message : 'Error updating assignee'
+      throw err
+    }
+  }
+
+  const deleteAssignee = async (assigneeId: string) => {
+    try {
+      const authStore = useAuthStore()
+
+      const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}/${assigneeId}`, {
+        method: 'DELETE',
+        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+      })
+
+      await handleApiError(response)
+
+      // Remove from the assignees list
+      const index = assignees.value.findIndex(a => a.id === assigneeId)
+      if (index > -1) {
+        assignees.value.splice(index, 1)
+      }
+
+      return true
+    } catch (err) {
+      console.error('Error deleting assignee:', err)
+      error.value = err instanceof Error ? err.message : 'Error deleting assignee'
+      return false
+    }
+  }
 
   return {
     // State
@@ -305,6 +422,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
     updateAssignmentRule,
     deleteAssignmentRule,
     updateFilters,
-    updateRealTimeStats
+    updateRealTimeStats,
+    searchUsers,
+    clearSearchResults,
+    createAssignee,
+    updateAssignee,
+    deleteAssignee
   }
 })

@@ -316,6 +316,36 @@ export interface Assignee {
   updatedAt: string;
 }
 
+// API User Response Type (for user search)
+export interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  organization_id: string;
+  created_at: string;
+  organization: {
+    id: string;
+    name: string;
+    description?: string;
+    active: boolean;
+  };
+}
+
+// API User Search Response
+export interface UserSearchResponse {
+  data: ApiUser[];
+  meta: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+    sort: string;
+    dir: string;
+    search: string;
+    include: any[];
+  };
+}
+
 export interface AssigneeStats {
   assigneeId: string;
   assignee: Assignee;

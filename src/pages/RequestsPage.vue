@@ -11,6 +11,15 @@
               @change="handleDateRangeChange"
             />
           </div>
+
+          <!-- User Search Filter -->
+          <div class="flex items-center space-x-2">
+            <UserSearch
+              v-model="selectedUser"
+              @user-selected="handleUserSelected"
+              placeholder="Buscar responsable..."
+            />
+          </div>
           
           <!-- View Toggle -->
           <div class="flex bg-gray-100 rounded-lg p-0">
@@ -212,20 +221,24 @@ import { useI18n } from 'vue-i18n'
 import Layout from '../components/layout/Layout.vue'
 import KanbanBoard from '../components/kanban/KanbanBoard.vue'
 import DateRangePicker from '../components/ui/DateRangePicker.vue'
+import UserSearch from '../components/ui/UserSearch.vue'
 import RequestInformationForm from '../components/RequestInformationForm.vue'
 import { useRequestsStore } from '../stores/requests'
 import { useStatusStore } from '../stores/status'
-import type { RequestInformation } from '../types'
+import { useAssigneesStore } from '../stores/assignees'
+import type { RequestInformation, Assignee } from '../types'
 
 const { t } = useI18n()
 const requestsStore = useRequestsStore()
 const statusStore = useStatusStore()
+const assigneesStore = useAssigneesStore()
 
 // Reactive data
 const viewMode = ref<'kanban' | 'list'>('kanban')
 const searchQuery = ref('')
 const statusFilter = ref('')
 const dateRange = ref<{ from?: string; to?: string }>({})
+const selectedUser = ref<Assignee | null>(null)
 const showFormModal = ref(false)
 
 // Computed properties
@@ -331,6 +344,13 @@ const handleDateRangeChange = (value: { from?: string; to?: string }) => {
 const handleRequestCreated = async () => {
   // Refresh the requests data after a new request is created
   await refreshData()
+}
+
+const handleUserSelected = (user: Assignee) => {
+  // Handle user selection for filtering requests by assigned user
+  console.log('Selected user for filtering:', user)
+  // You can add filtering logic here if needed
+  // For now, this is just for selecting the responsible user
 }
 
 // Lifecycle

@@ -9,6 +9,15 @@
         </div>
         <div class="flex space-x-3">
           <button
+            @click="showAssigneeModal = true"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Nuevo Responsable
+          </button>
+          <button
             @click="showRulesModal = true"
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -423,6 +432,14 @@
         @close="handleCloseRuleModal"
         @save="handleSaveRule"
       />
+
+      <!-- Assignee Form Modal -->
+      <AssigneeModal
+        :is-open="showAssigneeModal"
+        :loading="assigneeFormLoading"
+        @close="handleCloseAssigneeModal"
+        @save="handleSaveAssignee"
+      />
     </div>
   </Layout>
 </template>
@@ -431,6 +448,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import Layout from '../components/layout/Layout.vue'
 import AssignmentRuleModal from '../components/assignees/AssignmentRuleModal.vue'
+import AssigneeModal from '../components/assignees/AssigneeModal.vue'
 import { useAssigneesStore } from '../stores/assignees'
 import type { Assignee, AssignmentRule } from '../types'
 
@@ -442,11 +460,13 @@ const dateTo = ref('')
 const showRulesModal = ref(false)
 const showRuleFormModal = ref(false)
 const showReassignModal = ref(false)
+const showAssigneeModal = ref(false)
 const selectedAssignee = ref<Assignee | null>(null)
 const selectedRule = ref<AssignmentRule | null>(null)
 const reassignToId = ref('')
 const reassignReason = ref('')
 const ruleFormLoading = ref(false)
+const assigneeFormLoading = ref(false)
 
 // Computed properties
 const loading = computed(() => assigneesStore.loading)
@@ -539,6 +559,24 @@ const handleSaveRule = async (ruleData: Omit<AssignmentRule, 'id' | 'createdAt' 
 const handleCloseRuleModal = () => {
   showRuleFormModal.value = false
   selectedRule.value = null
+}
+
+const handleSaveAssignee = async (assigneeData: Omit<Assignee, 'id' | 'createdAt' | 'updatedAt'>) => {
+  assigneeFormLoading.value = true
+
+  try {
+    await assigneesStore.createAssignee(assigneeData)
+    showAssigneeModal.value = false
+    await refreshData()
+  } catch (error) {
+    console.error('Error creating assignee:', error)
+  } finally {
+    assigneeFormLoading.value = false
+  }
+}
+
+const handleCloseAssigneeModal = () => {
+  showAssigneeModal.value = false
 }
 
 const deleteRule = async (rule: AssignmentRule) => {

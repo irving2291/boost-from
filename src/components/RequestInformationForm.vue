@@ -173,6 +173,21 @@
                 placeholder="0.00"
               />
             </div>
+
+            <!-- Responsible User Assignment -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Responsable
+              </label>
+              <UserSearch
+                v-model="selectedUser"
+                @user-selected="handleUserSelected"
+                placeholder="Buscar responsable..."
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                Asigna un responsable para este lead
+              </p>
+            </div>
           </form>
         </div>
 
@@ -201,8 +216,9 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import AccountSearch from './ui/AccountSearch.vue'
+import UserSearch from './ui/UserSearch.vue'
 import { useRequestsStore } from '../stores/requests'
-import type { Account, RequestInformation } from '../types'
+import type { Account, RequestInformation, Assignee } from '../types'
 
 // Props
 interface Props {
@@ -221,6 +237,7 @@ const emit = defineEmits<{
 
 // Reactive data
 const selectedAccount = ref<Account | null>(null)
+const selectedUser = ref<Assignee | null>(null)
 const isSubmitting = ref(false)
 
 const formData = reactive({
@@ -248,6 +265,11 @@ const handleAccountSelected = (account: Account) => {
   formData.company = account.companyName || ''
 }
 
+const handleUserSelected = (user: Assignee) => {
+  // Handle user selection for assignment
+  console.log('Selected user for assignment:', user)
+}
+
 const handleSubmit = async () => {
   if (!formData.fistName || !formData.lastName || !formData.email || !formData.phone) {
     alert('Por favor complete todos los campos obligatorios')
@@ -268,6 +290,7 @@ const handleSubmit = async () => {
       description: formData.description || undefined,
       priority: formData.priority,
       amount: formData.amount,
+      assignedTo: selectedUser.value?.id || undefined,
       status: {
         id: 'new-status-id', // This should come from the status store
         code: 'NEW',
@@ -300,6 +323,7 @@ const closeModal = () => {
 
 const resetForm = () => {
   selectedAccount.value = null
+  selectedUser.value = null
   formData.fistName = ''
   formData.lastName = ''
   formData.email = ''
