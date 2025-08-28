@@ -12,12 +12,11 @@
             />
           </div>
 
-          <!-- User Search Filter -->
+          <!-- Assignee Selector -->
           <div class="flex items-center space-x-2">
-            <UserSearch
-              v-model="selectedUser"
-              @user-selected="handleUserSelected"
-              placeholder="Buscar responsable..."
+            <AssigneeSelector
+              v-model="currentAssignee"
+              @assignee-changed="handleAssigneeChanged"
             />
           </div>
           
@@ -221,7 +220,7 @@ import { useI18n } from 'vue-i18n'
 import Layout from '../components/layout/Layout.vue'
 import KanbanBoard from '../components/kanban/KanbanBoard.vue'
 import DateRangePicker from '../components/ui/DateRangePicker.vue'
-import UserSearch from '../components/ui/UserSearch.vue'
+import AssigneeSelector from '../components/assignees/AssigneeSelector.vue'
 import RequestInformationForm from '../components/RequestInformationForm.vue'
 import { useRequestsStore } from '../stores/requests'
 import { useStatusStore } from '../stores/status'
@@ -238,7 +237,7 @@ const viewMode = ref<'kanban' | 'list'>('kanban')
 const searchQuery = ref('')
 const statusFilter = ref('')
 const dateRange = ref<{ from?: string; to?: string }>({})
-const selectedUser = ref<Assignee | null>(null)
+const currentAssignee = ref<Assignee | null>(null)
 const showFormModal = ref(false)
 
 // Computed properties
@@ -289,10 +288,33 @@ const filteredRequests = computed(() => {
 
 // Methods
 const refreshData = async () => {
-  await Promise.all([
-    requestsStore.fetchRequests(dateRange.value),
-    statusStore.fetchStatuses()
-  ])
+  // First load current user's assignee
+  if (!currentAssignee.value) {
+    try {
+      const assignee = await assigneesStore.fetchCurrentUserAssignee()
+      if (assignee) {
+        currentAssignee.value = assignee
+      }
+    } catch (error) {
+      console.error('Error loading current user assignee:', error)
+    }
+  }
+
+  // Then load requests using assignee and date range
+  if (currentAssignee.value) {
+    await Promise.all([
+      requestsStore.fetchRequestsByAssigneeAndPeriod(
+        currentAssignee.value.id,
+        dateRange.value?.from,
+        dateRange.value?.to
+      ),
+      statusStore.fetchStatuses()
+    ])
+  } else {
+    // If no assignee, clear requests by calling fetch with empty result
+    // This will be handled by the store's error handling
+    console.log('No assignee available for loading requests')
+  }
 }
 
 const formatDate = (dateString: string) => {
@@ -335,10 +357,19 @@ const handleAddRequest = () => {
   showFormModal.value = true
 }
 
-const handleDateRangeChange = (value: { from?: string; to?: string }) => {
+const handleDateRangeChange = async (value: { from?: string; to?: string }) => {
   dateRange.value = value
-  // Optionally save to localStorage
+  // Save to localStorage
   localStorage.setItem('requests_date_range', JSON.stringify(value))
+
+  // Reload requests with new date range if we have an assignee
+  if (currentAssignee.value) {
+    await requestsStore.fetchRequestsByAssigneeAndPeriod(
+      currentAssignee.value.id,
+      value?.from,
+      value?.to
+    )
+  }
 }
 
 const handleRequestCreated = async () => {
@@ -346,15 +377,26 @@ const handleRequestCreated = async () => {
   await refreshData()
 }
 
-const handleUserSelected = (user: Assignee) => {
-  // Handle user selection for filtering requests by assigned user
-  console.log('Selected user for filtering:', user)
-  // You can add filtering logic here if needed
-  // For now, this is just for selecting the responsible user
+const handleAssigneeChanged = async (assignee: Assignee | null) => {
+  // Handle assignee selection for the current user
+  console.log('Current assignee changed:', assignee)
+
+  // Reload requests with new assignee
+  if (assignee) {
+    await requestsStore.fetchRequestsByAssigneeAndPeriod(
+      assignee.id,
+      dateRange.value?.from,
+      dateRange.value?.to
+    )
+  } else {
+    // If no assignee selected, clear requests
+    console.log('No assignee selected, requests will be empty')
+  }
 }
 
 // Lifecycle
 onMounted(async () => {
+  // Load assignee first, then requests will be loaded by refreshData
   await refreshData()
 })
 

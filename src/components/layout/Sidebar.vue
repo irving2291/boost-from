@@ -192,15 +192,15 @@ onMounted(() => {
 <template>
   <aside
     :class="cn(
-      'text-white min-h-screen flex flex-col transition-all duration-300 ease-in-out',
-      'border-r border-slate-500 shadow-inner',
+      'text-white h-screen flex flex-col transition-all duration-300 ease-in-out',
+      'border-r border-slate-500 shadow-inner overflow-hidden overflow-x-hidden',
       sidebarStore.isCollapsed ? 'w-16' : 'w-64',
       className
     )"
     :style="{ background: 'linear-gradient(to bottom, #4A5568, #2D3748)' }"
   >
-    <!-- Logo/Brand -->
-    <div class="p-6 border-b border-slate-300 border-opacity-30">
+    <!-- Logo/Brand - Fixed Header -->
+    <div class="p-6 border-b border-slate-300 border-opacity-30 flex-shrink-0 overflow-x-hidden">
       <div class="flex items-center space-x-3">
         <div class="flex-shrink-0">
           <img
@@ -231,65 +231,68 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Navigation -->
-     <nav class="flex-1 px-4 py-6 space-y-1">
-      <template v-for="item in navigationItems" :key="item.id">
-        <NavItem
-          :item="item"
-          :current-path="currentPath"
-          :is-collapsed="sidebarStore.isCollapsed"
-          @navigate="handleNavigation"
-        />
-      </template>
-     </nav>
+    <!-- Scrollable Content Area -->
+    <div class="flex-1 overflow-y-auto overflow-x-hidden">
+      <!-- Navigation -->
+      <nav class="px-4 py-6 space-y-1 overflow-x-hidden">
+        <template v-for="item in navigationItems" :key="item.id">
+          <NavItem
+            :item="item"
+            :current-path="currentPath"
+            :is-collapsed="sidebarStore.isCollapsed"
+            @navigate="handleNavigation"
+          />
+        </template>
+      </nav>
 
-    <!-- Status Summary -->
-    <div
-      v-if="summary && !sidebarStore.isCollapsed"
-      class="p-4 border-t border-slate-300 border-opacity-30 transition-opacity duration-300"
-    >
-      <h3 class="text-sm font-medium text-slate-100 mb-3">
-        {{ t('common.requestStatus') }}
-      </h3>
-      <div class="space-y-2">
-        <div
-          v-for="status in REQUEST_STATUSES"
-          :key="status"
-          v-show="(summary.byStatus[status] || 0) > 0"
-          class="flex items-center justify-between text-xs"
-        >
-          <span class="text-slate-200">
-            {{ getStatusLabel(status) }}
-          </span>
-          <span class="text-white font-medium">
-            {{ summary.byStatus[status] || 0 }}
-          </span>
+      <!-- Status Summary -->
+      <div
+        v-if="summary && !sidebarStore.isCollapsed"
+        class="p-4 border-t border-slate-300 border-opacity-30 transition-opacity duration-300"
+      >
+        <h3 class="text-sm font-medium text-slate-100 mb-3">
+          {{ t('common.requestStatus') }}
+        </h3>
+        <div class="space-y-2">
+          <div
+            v-for="status in REQUEST_STATUSES"
+            :key="status"
+            v-show="(summary.byStatus[status] || 0) > 0"
+            class="flex items-center justify-between text-xs"
+          >
+            <span class="text-slate-200">
+              {{ getStatusLabel(status) }}
+            </span>
+            <span class="text-white font-medium">
+              {{ summary.byStatus[status] || 0 }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Conversion Rate -->
+        <div v-if="summary.conversionRate > 0" class="mt-3 pt-3 border-t border-slate-300 border-opacity-30">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-200">
+              {{ t('common.conversionRate') }}
+            </span>
+            <span class="text-green-300 font-medium">
+              {{ (summary.conversionRate * 100).toFixed(1) }}%
+            </span>
+          </div>
         </div>
       </div>
-      
-      <!-- Conversion Rate -->
-      <div v-if="summary.conversionRate > 0" class="mt-3 pt-3 border-t border-slate-300 border-opacity-30">
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-slate-200">
-            {{ t('common.conversionRate') }}
-          </span>
-          <span class="text-green-300 font-medium">
-            {{ (summary.conversionRate * 100).toFixed(1) }}%
-          </span>
-        </div>
+
+      <!-- Language Selector -->
+      <div v-if="!sidebarStore.isCollapsed" class="p-4 border-t border-slate-300 border-opacity-30">
+        <h3 class="text-sm font-medium text-slate-100 mb-3">
+          {{ t('common.language') }}
+        </h3>
+        <LanguageSelector />
       </div>
     </div>
 
-    <!-- Language Selector -->
-    <div v-if="!sidebarStore.isCollapsed" class="p-4 border-t border-slate-300 border-opacity-30">
-      <h3 class="text-sm font-medium text-slate-100 mb-3">
-        {{ t('common.language') }}
-      </h3>
-      <LanguageSelector />
-    </div>
-
-    <!-- Footer with Copyright and Toggle Button -->
-    <div class="p-4 border-t border-slate-300 border-opacity-30">
+    <!-- Footer with Copyright and Toggle Button - Fixed at Bottom -->
+    <div class="p-4 border-t border-slate-300 border-opacity-30 flex-shrink-0 overflow-x-hidden">
       <div class="flex items-center justify-between">
         <!-- Copyright -->
         <div v-if="!sidebarStore.isCollapsed" class="flex-1">
@@ -297,7 +300,7 @@ onMounted(() => {
             {{ t('common.copyright') }}
           </p>
         </div>
-        
+
         <!-- Toggle Button -->
         <div class="flex-shrink-0">
           <button

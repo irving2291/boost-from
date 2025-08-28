@@ -12,6 +12,7 @@ import type {
 } from '../types'
 import { API_BASE_URL, API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from './auth'
+import { useOrganizationsStore } from './organizations'
 
 export const useAssigneesStore = defineStore('assignees', () => {
   // State
@@ -61,17 +62,16 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const fetchAssignees = async () => {
     loading.value = true
     error.value = null
-    console.log('si aqui entra')
     try {
       const authStore = useAuthStore()
-      
+      const organizationsStore = useOrganizationsStore()
+
       const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}`, {
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
       const data = await response.json()
-      console.log(data)
       if (Array.isArray(data)) {
         assignees.value = data
       } else if (data.data && Array.isArray(data.data)) {
@@ -94,9 +94,10 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const fetchAssigneeStats = async (filters?: AssigneeFilters) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
       let url = `${API_ENDPOINTS.CRM.ASSIGNEES}/stats`
       
       if (filters) {
@@ -117,7 +118,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       }
       
       const response = await fetch(url, {
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -145,12 +146,13 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const fetchAssignmentRules = async () => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
-      
+      const organizationsStore = useOrganizationsStore()
+
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules`, {
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -178,10 +180,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const reassignRequest = async (reassignment: Omit<RequestReassignment, 'reassignedAt'>) => {
     try {
       const authStore = useAuthStore()
-      
+      const organizationsStore = useOrganizationsStore()
+
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/${reassignment.requestId}/reassign`, {
         method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify({
           toAssigneeId: reassignment.toAssigneeId,
           reason: reassignment.reason
@@ -204,10 +207,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const createAssignmentRule = async (rule: Omit<AssignmentRule, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const authStore = useAuthStore()
-      
+      const organizationsStore = useOrganizationsStore()
+
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules`, {
         method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify(rule)
       })
       
@@ -226,10 +230,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const updateAssignmentRule = async (ruleId: string, updates: Partial<AssignmentRule>) => {
     try {
       const authStore = useAuthStore()
-      
+      const organizationsStore = useOrganizationsStore()
+
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules/${ruleId}`, {
         method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify(updates)
       })
       
@@ -252,10 +257,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const deleteAssignmentRule = async (ruleId: string) => {
     try {
       const authStore = useAuthStore()
-      
+      const organizationsStore = useOrganizationsStore()
+
       const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules/${ruleId}`, {
         method: 'DELETE',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
       
       await handleApiError(response)
@@ -289,15 +295,15 @@ export const useAssigneesStore = defineStore('assignees', () => {
 
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
 
       // Use axios for the request
       const response = await axios.get(`${API_BASE_URL}/auth/my-org/users`, {
         params: { search: query },
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
 
       const data = response.data
-
       // Handle the new API response format
       if (data.data && Array.isArray(data.data)) {
         searchResults.value = data.data
@@ -322,13 +328,54 @@ export const useAssigneesStore = defineStore('assignees', () => {
     searchResults.value = []
   }
 
+  const fetchCurrentUserAssignee = async () => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
+      const userId = authStore.user?.sub
+
+      if (!userId) {
+        throw new Error('Usuario no autenticado')
+      }
+
+      const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}/user/${userId}`, {
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
+      })
+
+      await handleApiError(response)
+      const data = await response.json()
+
+      // Handle different response formats
+      let assigneeData = null
+      if (data.data) {
+        assigneeData = data.data
+      } else if (Array.isArray(data) && data.length > 0) {
+        assigneeData = data[0]
+      } else if (data && typeof data === 'object') {
+        assigneeData = data
+      }
+
+      return assigneeData
+    } catch (err) {
+      console.error('Error fetching current user assignee:', err)
+      error.value = err instanceof Error ? err.message : 'Error fetching current user assignee'
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   const createAssignee = async (assigneeData: Omit<Assignee, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
 
       const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}`, {
         method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify(assigneeData)
       })
 
@@ -349,10 +396,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const updateAssignee = async (assigneeId: string, updates: Partial<Assignee>) => {
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
 
       const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}/${assigneeId}`, {
         method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify(updates)
       })
 
@@ -376,10 +424,11 @@ export const useAssigneesStore = defineStore('assignees', () => {
   const deleteAssignee = async (assigneeId: string) => {
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
 
       const response = await fetch(`${API_ENDPOINTS.CRM.ASSIGNEES}/${assigneeId}`, {
         method: 'DELETE',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
 
       await handleApiError(response)
@@ -403,6 +452,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
     assignees,
     assigneeStats,
     assignmentRules,
+    searchResults,
     realTimeStats,
     loading,
     error,
@@ -425,6 +475,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
     updateRealTimeStats,
     searchUsers,
     clearSearchResults,
+    fetchCurrentUserAssignee,
     createAssignee,
     updateAssignee,
     deleteAssignee

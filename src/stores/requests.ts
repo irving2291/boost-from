@@ -138,15 +138,15 @@ export const useRequestsStore = defineStore('requests', () => {
   const fetchRequests = async (range:any|null) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
       const statusStore = useStatusStore()
-      
+
       // Build URL with limit parameter only
       let url = API_ENDPOINTS.CRM.REQUESTS
       const params = new URLSearchParams()
-      
+
       // Add limit parameter
       params.append('limit', '999')
       if (range?.from) {
@@ -155,16 +155,16 @@ export const useRequestsStore = defineStore('requests', () => {
       if (range?.to) {
         params.append('to', range.to)
       }
-      
+
       url += `?${params.toString()}`
-      
+
       const response = await fetch(url, {
         headers: createAuthHeaders(authStore.token || undefined)
       })
-      
+
       await handleApiError(response)
       const data = await response.json()
-      
+
       // Handle API response - adjust based on actual API structure
       if (Array.isArray(data)) {
         requests.value = data
@@ -184,9 +184,57 @@ export const useRequestsStore = defineStore('requests', () => {
     }
   }
 
+  const fetchRequestsByAssigneeAndPeriod = async (assigneeId: string, from?: string, to?: string) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const authStore = useAuthStore()
+
+      // Build URL for assignee and period endpoint
+      let url = `${API_ENDPOINTS.CRM.REQUESTS}/assignee/${assigneeId}/period`
+      const params = new URLSearchParams()
+
+      if (from) {
+        params.append('from', from)
+      }
+      if (to) {
+        params.append('to', to)
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+
+      const response = await fetch(url, {
+        headers: createAuthHeaders(authStore.token || undefined)
+      })
+
+      await handleApiError(response)
+      const data = await response.json()
+
+      // Handle API response - adjust based on actual API structure
+      if (Array.isArray(data)) {
+        requests.value = data
+      } else if (data.data && Array.isArray(data.data)) {
+        requests.value = data.data
+      } else {
+        console.warn('Unexpected API response format for requests by assignee and period')
+        requests.value = []
+      }
+    } catch (err) {
+      console.error('Error fetching requests by assignee and period from API:', err)
+      error.value = err instanceof Error ? err.message : 'Error fetching requests by assignee and period'
+      // Fallback to empty array on error
+      requests.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
   const fetchRequestsByStatus = async (statusCode: string) => {
     // Status parameter is no longer needed, just fetch all requests
-    return fetchRequests()
+    return fetchRequests(null)
   }
 
   const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
@@ -265,6 +313,7 @@ export const useRequestsStore = defineStore('requests', () => {
     // Actions
     fetchRequests,
     fetchRequestsByStatus,
+    fetchRequestsByAssigneeAndPeriod,
     updateRequestStatus,
     addRequest,
     deleteRequest
