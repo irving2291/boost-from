@@ -162,6 +162,7 @@ onMounted(async () => {
     if (assignee) {
       currentAssignee.value = assignee
       emit('update:modelValue', assignee)
+      emit('assignee-changed', assignee)
     }
   } catch (error) {
     console.error('Error loading current user assignee:', error)

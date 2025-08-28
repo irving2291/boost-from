@@ -17,6 +17,7 @@
             <AssigneeSelector
               v-model="currentAssignee"
               @assignee-changed="handleAssigneeChanged"
+              @update:modelValue="handleAssigneeLoaded"
             />
           </div>
           
@@ -288,31 +289,22 @@ const filteredRequests = computed(() => {
 
 // Methods
 const refreshData = async () => {
-  // First load current user's assignee
-  if (!currentAssignee.value) {
-    try {
-      const assignee = await assigneesStore.fetchCurrentUserAssignee()
-      if (assignee) {
-        currentAssignee.value = assignee
-      }
-    } catch (error) {
-      console.error('Error loading current user assignee:', error)
-    }
-  }
+  // Load statuses first
+  await statusStore.fetchStatuses()
 
-  // Then load requests using assignee and date range
-  if (currentAssignee.value) {
-    await Promise.all([
-      requestsStore.fetchRequestsByAssigneeAndPeriod(
-        currentAssignee.value.id,
-        dateRange.value?.from,
-        dateRange.value?.to
-      ),
-      statusStore.fetchStatuses()
-    ])
+  // The AssigneeSelector component will handle loading the assignee automatically
+  // and emit events when it's ready. We listen to those events to load requests.
+}
+
+const loadRequestsForAssignee = async (assignee: Assignee | null) => {
+  if (assignee) {
+    await requestsStore.fetchRequestsByAssigneeAndPeriod(
+      assignee.id,
+      dateRange.value?.from,
+      dateRange.value?.to
+    )
   } else {
-    // If no assignee, clear requests by calling fetch with empty result
-    // This will be handled by the store's error handling
+    // If no assignee, clear requests
     console.log('No assignee available for loading requests')
   }
 }
@@ -362,36 +354,34 @@ const handleDateRangeChange = async (value: { from?: string; to?: string }) => {
   // Save to localStorage
   localStorage.setItem('requests_date_range', JSON.stringify(value))
 
-  // Reload requests with new date range if we have an assignee
-  if (currentAssignee.value) {
-    await requestsStore.fetchRequestsByAssigneeAndPeriod(
-      currentAssignee.value.id,
-      value?.from,
-      value?.to
-    )
-  }
+  // Reload requests with new date range using current assignee
+  await loadRequestsForAssignee(currentAssignee.value)
 }
 
 const handleRequestCreated = async () => {
   // Refresh the requests data after a new request is created
-  await refreshData()
+  await loadRequestsForAssignee(currentAssignee.value)
+}
+
+const handleAssigneeLoaded = async (assignee: Assignee | null) => {
+  // Handle when AssigneeSelector loads assignee automatically on mount
+  console.log('Assignee loaded automatically:', assignee)
+
+  console.log(assignee)
+  // Update current assignee and load requests for the first time
+  currentAssignee.value = assignee
+  if (assignee) {
+    await loadRequestsForAssignee(assignee)
+  }
 }
 
 const handleAssigneeChanged = async (assignee: Assignee | null) => {
   // Handle assignee selection for the current user
   console.log('Current assignee changed:', assignee)
 
-  // Reload requests with new assignee
-  if (assignee) {
-    await requestsStore.fetchRequestsByAssigneeAndPeriod(
-      assignee.id,
-      dateRange.value?.from,
-      dateRange.value?.to
-    )
-  } else {
-    // If no assignee selected, clear requests
-    console.log('No assignee selected, requests will be empty')
-  }
+  // Update current assignee and reload requests
+  currentAssignee.value = assignee
+  await loadRequestsForAssignee(assignee)
 }
 
 // Lifecycle

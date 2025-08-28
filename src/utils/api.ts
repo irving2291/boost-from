@@ -61,10 +61,6 @@ export const createAuthHeaders = (token?: string, organizationId?: string) => {
     headers['Authorization'] = `Bearer ${token}`
   }
   
-  if (organizationId) {
-    headers['X-Org-Id'] = organizationId
-  }
-  
   return headers
 }
 
