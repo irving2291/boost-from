@@ -365,13 +365,15 @@ const handleRequestCreated = async () => {
 
 const handleAssigneeLoaded = async (assignee: Assignee | null) => {
   // Handle when AssigneeSelector loads assignee automatically on mount
-  console.log('Assignee loaded automatically:', assignee)
+  console.log('RequestsPage: Assignee loaded automatically:', assignee)
 
-  console.log(assignee)
   // Update current assignee and load requests for the first time
   currentAssignee.value = assignee
   if (assignee) {
+    console.log('RequestsPage: Loading requests for assignee:', assignee)
     await loadRequestsForAssignee(assignee)
+  } else {
+    console.log('RequestsPage: No assignee loaded, requests will not be loaded')
   }
 }
 

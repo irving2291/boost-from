@@ -105,10 +105,16 @@ const totalResults = ref(0)
 // Stores
 const assigneesStore = useAssigneesStore()
 
-// Computed
-const selectedUser = computed({
-  get: () => props.modelValue,
-  set: (value: Assignee | null) => emit('update:modelValue', value)
+// Reactive data for selected user
+const selectedUser = ref<Assignee | null>(props.modelValue || null)
+
+// Computed for v-model compatibility
+const modelValue = computed({
+  get: () => selectedUser.value,
+  set: (value: Assignee | null) => {
+    selectedUser.value = value
+    emit('update:modelValue', value)
+  }
 })
 
 const hasMoreResults = computed(() => totalResults.value > 25)
@@ -136,25 +142,23 @@ const performSearch = async () => {
   showResults.value = true
 
   try {
-    // Use the assignees store to search users
+    // Use the assignees store to search users (it handles mapping internally)
     await assigneesStore.searchUsers(searchQuery.value)
 
-    // Get the raw API response and map it to Assignee format
-    const rawResponse = assigneesStore.searchResults
+    // Get the mapped results from the store
+    const results = assigneesStore.searchResults
 
-    // Check if rawResponse exists and is an array
-    if (!rawResponse || !Array.isArray(rawResponse)) {
-      console.warn('Invalid search results format:', rawResponse)
+    // Check if results exist and is an array
+    if (!results || !Array.isArray(results)) {
+      console.warn('Invalid search results format:', results)
       searchResults.value = []
       totalResults.value = 0
       return
     }
 
-    // Map API users to Assignee format and limit to 25 results
-    const mappedResults = rawResponse.map(mapApiUserToAssignee).slice(0, 25)
-
-    searchResults.value = mappedResults
-    totalResults.value = rawResponse.length
+    // Results are already mapped to Assignee objects, just limit to 25
+    searchResults.value = results.slice(0, 25)
+    totalResults.value = results.length
   } catch (error) {
     console.error('Error searching users:', error)
     searchResults.value = []
@@ -164,29 +168,10 @@ const performSearch = async () => {
   }
 }
 
-const mapApiUserToAssignee = (apiUser: any): Assignee => {
-  // Split the name into first and last name
-  const nameParts = apiUser.name?.split(' ') || []
-  const firstName = nameParts[0] || ''
-  const lastName = nameParts.slice(1).join(' ') || ''
-
-  return {
-    id: apiUser.id,
-    firstName,
-    lastName,
-    email: apiUser.email,
-    phone: '', // API doesn't provide phone
-    avatar: undefined, // API doesn't provide avatar
-    active: true, // Assume active by default
-    role: 'user', // Default role
-    department: undefined, // API doesn't provide department
-    createdAt: apiUser.created_at,
-    updatedAt: apiUser.created_at
-  }
-}
 
 const selectUser = (user: Assignee) => {
   selectedUser.value = user
+  modelValue.value = user  // Update the computed property
   searchQuery.value = getUserDisplayName(user)
   showResults.value = false
   emit('user-selected', user)
@@ -203,10 +188,12 @@ const getUserInitials = (user: Assignee): string => {
 }
 
 // Watch for external changes to modelValue
-watch(() => props.modelValue, (newUser: Assignee | null) => {
+watch(() => props.modelValue, (newUser: Assignee | null | undefined) => {
   if (newUser) {
+    selectedUser.value = newUser
     searchQuery.value = getUserDisplayName(newUser)
   } else {
+    selectedUser.value = null
     searchQuery.value = ''
   }
 })

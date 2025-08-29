@@ -1,8 +1,8 @@
 <template>
   <div class="assignee-selector">
-    <!-- Assignee Display Button -->
+    <!-- Assignee Display Button - Editable for crm-manager -->
     <button
-      v-if="currentAssignee"
+      v-if="currentAssignee && canEditAssignee"
       @click="showSearch = true"
       class="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer"
     >
@@ -21,9 +21,30 @@
       </svg>
     </button>
 
-    <!-- No Assignee State -->
+    <!-- Assignee Display - Read-only for non-crm-manager -->
+    <div
+      v-else-if="currentAssignee && !canEditAssignee"
+      class="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
+      title="Solo los usuarios con rol crm-manager pueden editar el responsable"
+    >
+      <div class="flex-shrink-0">
+        <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+          <span class="text-xs font-medium text-gray-500">
+            {{ getAssigneeInitials(currentAssignee) }}
+          </span>
+        </div>
+      </div>
+      <span class="text-sm text-gray-500">
+        {{ getAssigneeDisplayName(currentAssignee) }}
+      </span>
+      <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+      </svg>
+    </div>
+
+    <!-- No Assignee State - Editable for crm-manager -->
     <button
-      v-else
+      v-else-if="!currentAssignee && canEditAssignee"
       @click="showSearch = true"
       class="flex items-center space-x-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer"
     >
@@ -35,8 +56,22 @@
       </span>
     </button>
 
-    <!-- Search Modal -->
-    <div v-if="showSearch" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <!-- No Assignee State - Read-only for non-crm-manager -->
+    <div
+      v-else
+      class="flex items-center space-x-2 px-3 py-2 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
+      title="Solo los usuarios con rol crm-manager pueden asignar responsable"
+    >
+      <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+      </svg>
+      <span class="text-sm text-gray-400">
+        Sin asignar
+      </span>
+    </div>
+
+    <!-- Search Modal - Only show for crm-manager users -->
+    <div v-if="showSearch && canEditAssignee" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
@@ -103,9 +138,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import UserSearch from '../ui/UserSearch.vue'
 import { useAssigneesStore } from '../../stores/assignees'
+import { useAuthStore } from '../../stores/auth'
 import type { Assignee } from '../../types'
 
 // Props
@@ -130,6 +166,12 @@ const showSearch = ref(false)
 
 // Stores
 const assigneesStore = useAssigneesStore()
+const authStore = useAuthStore()
+
+// Computed properties
+const canEditAssignee = computed(() => {
+  return authStore.hasRole('crm-manager')
+})
 
 // Methods
 const getAssigneeDisplayName = (assignee: Assignee): string => {
@@ -155,17 +197,32 @@ const confirmAssigneeSelection = () => {
   }
 }
 
+// Watch for changes to modelValue from parent
+watch(() => props.modelValue, (newAssignee: Assignee | null) => {
+  currentAssignee.value = newAssignee
+  // Also update selectedAssignee for the UserSearch component
+  selectedAssignee.value = newAssignee
+})
+
 // Load current user's assignee on mount
 onMounted(async () => {
   try {
+    console.log('AssigneeSelector: Loading current user assignee...')
     const assignee = await assigneesStore.fetchCurrentUserAssignee()
+    console.log(assignee)
+    console.log('AssigneeSelector: Fetched assignee:', assignee)
+
     if (assignee) {
+      console.log('AssigneeSelector: Setting assignee:', assignee)
       currentAssignee.value = assignee
+      selectedAssignee.value = assignee  // Also set selectedAssignee for UserSearch
       emit('update:modelValue', assignee)
       emit('assignee-changed', assignee)
+    } else {
+      console.log('AssigneeSelector: No assignee found for current user')
     }
   } catch (error) {
-    console.error('Error loading current user assignee:', error)
+    console.error('AssigneeSelector: Error loading current user assignee:', error)
   }
 })
 </script>
