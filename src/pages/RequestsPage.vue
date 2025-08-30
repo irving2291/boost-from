@@ -292,8 +292,8 @@ const refreshData = async () => {
   // Load statuses first
   await statusStore.fetchStatuses()
 
-  // The AssigneeSelector component will handle loading the assignee automatically
-  // and emit events when it's ready. We listen to those events to load requests.
+  // Load requests for current assignee
+  await loadRequestsForAssignee(currentAssignee.value)
 }
 
 const loadRequestsForAssignee = async (assignee: Assignee | null) => {
