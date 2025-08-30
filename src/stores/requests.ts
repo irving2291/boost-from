@@ -221,8 +221,6 @@ export const useRequestsStore = defineStore('requests', () => {
       if (Array.isArray(data)) {
         requests.value = data
       } else if (data.data && Array.isArray(data.data)) {
-        console.log('la data si carga')
-        console.log(data.data)
         requests.value = data.data
       } else {
         console.warn('Unexpected API response format for requests by assignee and period')
@@ -240,11 +238,6 @@ export const useRequestsStore = defineStore('requests', () => {
     } finally {
       loading.value = false
     }
-  }
-
-  const fetchRequestsByStatus = async (statusCode: string) => {
-    // Status parameter is no longer needed, just fetch all requests
-    return fetchRequests(null)
   }
 
   const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
@@ -318,7 +311,6 @@ export const useRequestsStore = defineStore('requests', () => {
     completedRequests,
     // Actions
     fetchRequests,
-    fetchRequestsByStatus,
     fetchRequestsByAssigneeAndPeriod,
     updateRequestStatus,
     addRequest,
