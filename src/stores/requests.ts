@@ -195,6 +195,7 @@ export const useRequestsStore = defineStore('requests', () => {
       let url = `${API_ENDPOINTS.CRM.REQUESTS}/assignee/${assigneeId}/period`
       const params = new URLSearchParams()
 
+      params.append('limit', '999')
       if (from) {
         params.append('from', from)
       }

@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div class="relative border rounded-lg">
     <!-- Date Range Input Button -->
     <button
       ref="triggerRef"

@@ -13,5 +13,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    watch: {
+      usePolling: true,    // clave para Docker en Windows/WSL2/Mac
+      interval: 100
+    }
   },
 })

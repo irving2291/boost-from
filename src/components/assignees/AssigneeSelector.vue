@@ -24,7 +24,7 @@
     <!-- Assignee Display - Read-only for non-crm-manager -->
     <div
       v-else-if="currentAssignee && !canEditAssignee"
-      class="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
+      class="flex items-center space-x-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
       title="Solo los usuarios con rol crm-manager pueden editar el responsable"
     >
       <div class="flex-shrink-0">
