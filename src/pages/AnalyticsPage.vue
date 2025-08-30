@@ -171,7 +171,6 @@ const fetchAnalyticsData = async () => {
   try {
     await Promise.all([
       statusStore.fetchStatuses(),
-      requestsStore.fetchRequests(),
       quotationsStore.fetchQuotations()
     ])
   } catch (error) {

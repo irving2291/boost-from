@@ -297,7 +297,6 @@ const closeRequestModal = () => {
 onMounted(async () => {
   // Fetch statuses first, then requests
   await statusStore.fetchStatuses()
-  await requestsStore.fetchRequests()
 })
 </script>
 

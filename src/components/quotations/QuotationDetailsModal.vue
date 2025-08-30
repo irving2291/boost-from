@@ -289,13 +289,13 @@ const updateStatus = async (status: Quotation['status']) => {
 // Load request information when modal opens
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen && !requestInfo.value) {
-    requestsStore.fetchRequests()
+    // Request info loading removed
   }
 })
 
 onMounted(() => {
   if (props.isOpen && !requestInfo.value) {
-    requestsStore.fetchRequests()
+    // Request info loading removed
   }
 })
 </script>

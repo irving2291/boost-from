@@ -438,6 +438,5 @@ const deleteQuotation = async (quotation: Quotation) => {
 
 onMounted(async () => {
   await fetchQuotations()
-  await requestsStore.fetchRequests()
 })
 </script>

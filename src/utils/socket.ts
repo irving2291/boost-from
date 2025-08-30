@@ -98,11 +98,7 @@ class SocketService {
 
   private handleRequestStatusChanged(data: any) {
     console.log('Request status changed:', data)
-    
-    // Update requests store
-    const requestsStore = useRequestsStore()
-    requestsStore.fetchRequests()
-    
+
     // Update assignee stats
     const assigneesStore = useAssigneesStore()
     assigneesStore.fetchAssigneeStats(assigneesStore.filters)
@@ -118,11 +114,7 @@ class SocketService {
 
   private handleNewRequest(data: any) {
     console.log('New request received:', data)
-    
-    // Update requests store
-    const requestsStore = useRequestsStore()
-    requestsStore.fetchRequests()
-    
+
     // Show notification
     this.showNotification('Nueva petición', `Nueva petición de ${data.clientName}`)
   }

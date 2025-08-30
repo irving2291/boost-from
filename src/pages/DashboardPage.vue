@@ -114,7 +114,6 @@ const completedRequests = computed(() => requestsStore.completedRequests)
 // Load data on component mount
 onMounted(async () => {
   await statusStore.fetchStatuses()
-  await requestsStore.fetchRequests()
 })
 
 const recentActivities = computed(() => [
