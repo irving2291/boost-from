@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import axios from 'axios'
 import type { RequestInformation, RequestStatus, RequestsSummary } from '../types'
 import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from './auth'
@@ -158,12 +159,11 @@ export const useRequestsStore = defineStore('requests', () => {
 
       url += `?${params.toString()}`
 
-      const response = await fetch(url, {
+      const response = await axios.get(url, {
         headers: createAuthHeaders(authStore.token || undefined)
       })
 
-      await handleApiError(response)
-      const data = await response.json()
+      const data = response.data
 
       // Handle API response - adjust based on actual API structure
       if (Array.isArray(data)) {
@@ -174,9 +174,13 @@ export const useRequestsStore = defineStore('requests', () => {
         console.warn('Unexpected API response format for requests')
         requests.value = []
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching requests from API:', err)
-      error.value = err instanceof Error ? err.message : 'Error fetching requests'
+      if (axios.isAxiosError(err) && err.response) {
+        error.value = err.response.data?.message || `HTTP ${err.response.status}: ${err.response.statusText}`
+      } else {
+        error.value = err instanceof Error ? err.message : 'Error fetching requests'
+      }
       // Fallback to mock data on error for development
       requests.value = mockRequests
     } finally {
@@ -207,25 +211,30 @@ export const useRequestsStore = defineStore('requests', () => {
         url += `?${params.toString()}`
       }
 
-      const response = await fetch(url, {
+      const response = await axios.get(url, {
         headers: createAuthHeaders(authStore.token || undefined)
       })
 
-      await handleApiError(response)
-      const data = await response.json()
+      const data = response.data
 
       // Handle API response - adjust based on actual API structure
       if (Array.isArray(data)) {
         requests.value = data
       } else if (data.data && Array.isArray(data.data)) {
+        console.log('la data si carga')
+        console.log(data.data)
         requests.value = data.data
       } else {
         console.warn('Unexpected API response format for requests by assignee and period')
         requests.value = []
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching requests by assignee and period from API:', err)
-      error.value = err instanceof Error ? err.message : 'Error fetching requests by assignee and period'
+      if (axios.isAxiosError(err) && err.response) {
+        error.value = err.response.data?.message || `HTTP ${err.response.status}: ${err.response.statusText}`
+      } else {
+        error.value = err instanceof Error ? err.message : 'Error fetching requests by assignee and period'
+      }
       // Fallback to empty array on error
       requests.value = []
     } finally {
@@ -243,15 +252,11 @@ export const useRequestsStore = defineStore('requests', () => {
       const authStore = useAuthStore()
       
       // Call API to update request status using the correct endpoint
-      const response = await fetch(`${API_ENDPOINTS.CRM.REQUESTS}/${requestId}/status`, {
-        method: 'PATCH',
-        headers: createAuthHeaders(authStore.token || undefined),
-        body: JSON.stringify({
-          status_code: newStatusCode
-        })
+      const response = await axios.patch(`${API_ENDPOINTS.CRM.REQUESTS}/${requestId}/status`, {
+        status_code: newStatusCode
+      }, {
+        headers: createAuthHeaders(authStore.token || undefined)
       })
-      
-      await handleApiError(response)
       
       // Update local state
       const request = requests.value.find(r => r.id === requestId)
