@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
     ACCOUNTS: `${API_BASE_URL}/crm/accounts`,
     ACTIVATIONS: `${API_BASE_URL}/crm/activations`,
     LANDING_PAGES: `${API_BASE_URL}/crm/landing-pages`,
+    PUBLIC_LANDING_PAGES: `${API_BASE_URL}/landing-pages`,
   },
   // RBAC endpoints aligned with Bouncer-style routes
   RBAC: {

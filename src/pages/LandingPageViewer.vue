@@ -144,28 +144,18 @@ const loadLandingPage = async () => {
   try {
     loading.value = true
     error.value = null
-    
+
     const slug = route.params.slug as string
     if (!slug) {
       error.value = t('landingPages.invalidSlug')
       return
     }
 
-    // Fetch landing pages if not already loaded
-    if (landingPagesStore.landingPages.length === 0) {
-      await landingPagesStore.fetchLandingPages()
-    }
+    // Fetch the landing page directly by slug using the public endpoint
+    const page = await landingPagesStore.fetchLandingPageBySlug(slug)
 
-    // Find the landing page by slug
-    const page = landingPagesStore.getPageBySlug(slug)
-    
     if (!page) {
       error.value = t('landingPages.pageNotFound')
-      return
-    }
-
-    if (!page.isPublished) {
-      error.value = t('landingPages.pageNotPublished')
       return
     }
 

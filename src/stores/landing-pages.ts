@@ -197,6 +197,28 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     currentLandingPage.value = page
   }
 
+  const fetchLandingPageBySlug = async (slug: string): Promise<LandingPage | null> => {
+    loading.value = true
+    error.value = null
+
+    try {
+      // Use the public endpoint that doesn't require authentication
+      const response = await fetch(`${API_ENDPOINTS.CRM.PUBLIC_LANDING_PAGES}/slug/${slug}`)
+
+      await handleApiError(response)
+      const data = await response.json()
+
+      // The API returns the landing page data directly
+      return data as LandingPage
+    } catch (err) {
+      console.error('Error fetching landing page by slug:', err)
+      error.value = err instanceof Error ? err.message : 'Error loading landing page'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const clearError = () => {
     error.value = null
   }
@@ -208,15 +230,16 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     formSubmissions,
     loading,
     error,
-    
+
     // Getters
     publishedPages,
     draftPages,
     getPageBySlug,
     getSubmissionsByPageId,
-    
+
     // Actions
     fetchLandingPages,
+    fetchLandingPageBySlug,
     createLandingPage,
     updateLandingPage,
     deleteLandingPage,
