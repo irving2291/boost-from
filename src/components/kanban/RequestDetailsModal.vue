@@ -104,6 +104,11 @@
               </div>
             </div>
 
+            <!-- Events -->
+            <EventsComponent
+              :entity-id="`request_information_${request.id}`"
+            />
+
             <!-- Tags -->
             <div v-if="request.tags && request.tags.length > 0" class="bg-gray-50 rounded-lg p-4">
               <h3 class="text-lg font-semibold text-charcoal mb-3">Etiquetas</h3>
@@ -357,6 +362,7 @@ import {
 import type { RequestInformation, Quotation, QuotationDetail, CreateQuotationRequest } from '../../types'
 import { useQuotationsStore } from '../../stores/quotations'
 import NotificationPanel from '../notifications/NotificationPanel.vue'
+import EventsComponent from '../EventsComponent.vue'
 
 interface Props {
   isOpen: boolean
