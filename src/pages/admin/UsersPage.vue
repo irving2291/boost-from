@@ -337,12 +337,12 @@
           <div class="border rounded-lg p-4">
             <h4 class="font-medium text-gray-900 mb-3">Roles Disponibles</h4>
             <div class="grid grid-cols-1 gap-2">
-              {{ systemRoles }}
               <div v-for="role in systemRoles" :key="role.name" class="flex items-center justify-between p-2 border rounded">
                 <div class="flex items-center">
                   <input
                     :id="`role-${role.name}`"
                     v-model="selectedUserRoles"
+                    :data-id="role.id"
                     :value="role.name"
                     type="checkbox"
                     :disabled="loadingUserRoles || saving"

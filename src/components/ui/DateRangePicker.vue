@@ -357,13 +357,8 @@ const clearDates = () => {
 
 // Watch for external changes
 watch(() => props.modelValue, () => {
-  initializeRange()
+  // initializeRange()
 }, { deep: true })
-
-// Initialize on mount
-onMounted(() => {
-  initializeRange()
-})
 
 // Close calendar on outside click
 const handleClickOutside = (event: MouseEvent) => {

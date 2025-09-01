@@ -378,10 +378,6 @@ const handleAssigneeLoaded = async (assignee: Assignee | null) => {
 }
 
 const handleAssigneeChanged = async (assignee: Assignee | null) => {
-  // Handle assignee selection for the current user
-  console.log('Current assignee changed:', assignee)
-
-  // Update current assignee and reload requests
   currentAssignee.value = assignee
   await loadRequestsForAssignee(assignee)
 }

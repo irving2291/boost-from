@@ -207,19 +207,14 @@ watch(() => props.modelValue, (newAssignee: Assignee | null) => {
 // Load current user's assignee on mount
 onMounted(async () => {
   try {
-    console.log('AssigneeSelector: Loading current user assignee...')
     const assignee = await assigneesStore.fetchCurrentUserAssignee()
-    console.log(assignee)
-    console.log('AssigneeSelector: Fetched assignee:', assignee)
-
     if (assignee) {
-      console.log('AssigneeSelector: Setting assignee:', assignee)
       currentAssignee.value = assignee
       selectedAssignee.value = assignee  // Also set selectedAssignee for UserSearch
       emit('update:modelValue', assignee)
       emit('assignee-changed', assignee)
     } else {
-      console.log('AssigneeSelector: No assignee found for current user')
+      // console.log('AssigneeSelector: No assignee found for current user')
     }
   } catch (error) {
     console.error('AssigneeSelector: Error loading current user assignee:', error)
