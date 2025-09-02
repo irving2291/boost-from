@@ -13,7 +13,7 @@ export const API_ENDPOINTS = {
   },
   CRM: {
     REQUESTS: `${API_BASE_URL}/crm/requests-information`,
-    REQUESTS_STATUS: `${API_BASE_URL}/crm/requests-information/status`,
+    REQUESTS_STATUS: `${API_BASE_URL}/crm/requests-information-status`,
     REQUESTS_SUMMARY: `${API_BASE_URL}/crm/requests-information/summary`,
     QUOTATIONS: `${API_BASE_URL}/crm/quotations`,
     // New endpoints from backend
