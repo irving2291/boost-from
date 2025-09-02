@@ -54,7 +54,14 @@ const getEventDescription = (event: Event) => {
   if (event.payload.channel) {
     return `Evento en canal ${event.payload.channel}`
   }
-  return `Evento ${event.eventType} por ${event.actor.username}`
+  return `${event.actor.username}\n${event.eventType}`
+}
+
+const getEventType = (type: string) => {
+  if (type === 'request_information_status.created') {
+    return `created`
+  }
+  return `undefined`
 }
 
 onMounted(() => {
@@ -63,8 +70,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg p-6">
-    <h3 class="text-xl font-bold text-charcoal mb-6">Línea de Tiempo de Eventos</h3>
+  <div class="">
     <div v-if="loading" class="text-center py-8">
       <p class="text-slate-500">Cargando eventos...</p>
     </div>
@@ -97,11 +103,11 @@ onMounted(() => {
           <!-- Event content -->
           <div class="flex-1 min-w-0 pb-8">
             <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-sm">
-              <div class="flex items-start justify-between mb-2">
-                <h4 class="text-sm font-semibold text-slate-800">{{ getEventDescription(event) }}</h4>
-                <span v-if="event.eventType" class="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                  {{ event.eventType }}
+              <div class="flex items-start">
+                <span v-if="event.eventType" class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                  {{ getEventType(event.eventType) }}
                 </span>
+                <h4 class="text-sm font-semibold text-gray-800">{{ getEventDescription(event) }}</h4>
               </div>
               <div class="flex items-center space-x-4 text-xs text-slate-500">
                 <span class="flex items-center space-x-1">

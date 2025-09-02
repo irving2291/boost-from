@@ -37,7 +37,7 @@
       <Breadcrumbs :breadcrumbs="breadcrumbs" />
 
       <!-- Page Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
       <div class="flex items-center space-x-4">
         <button
           @click="goBack"
@@ -50,31 +50,52 @@
             <PhUser :size="20" class="text-white" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-charcoal">
+            <h1 class="text-xl sm:text-2xl font-bold text-charcoal">
               {{ getClientName(request) }}
             </h1>
-            <p class="text-slate-600">{{ request.email }}</p>
+            <p class="text-slate-600 text-sm sm:text-base">{{ request.email }}</p>
           </div>
         </div>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2 sm:space-x-4">
         <span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
           {{ request.status.name }}
         </span>
         <button
           @click="goBack"
-          class="px-4 py-2 text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50"
+          class="px-3 sm:px-4 py-2 text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50 text-sm sm:text-base"
         >
           Volver
         </button>
       </div>
     </div>
 
-    <!-- Content - Four Column Layout -->
-    <div class="flex gap-6 h-[calc(100vh-12rem)]">
-        <!-- Left Side - Request Information -->
-        <div class="w-1/4 p-6 overflow-y-auto border border-gray-200 rounded-lg bg-white">
-          <div class="space-y-6">
+    <!-- New Layout: Tabs Left, Content Center, Events Right -->
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden min-h-[calc(100vh-12rem)]">
+      <div class="grid grid-cols-12 h-full">
+        <!-- Left Tabs -->
+        <div class="col-span-2 bg-gray-50 border-r border-gray-200 p-4">
+          <nav class="space-y-2">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              @click="activeTab = tab.key"
+              :class="[
+                'w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                activeTab === tab.key
+                  ? 'bg-accent-blue text-white'
+                  : 'text-slate-600 hover:bg-gray-200'
+              ]"
+            >
+              {{ tab.label }}
+            </button>
+          </nav>
+        </div>
+
+        <!-- Center Content -->
+        <div class="col-span-7 p-6 overflow-y-auto">
+          <!-- Overview Tab Content -->
+          <div v-if="activeTab === 'overview'" class="space-y-6">
             <!-- Status and Priority -->
             <div class="bg-gray-50 rounded-lg p-4">
               <h3 class="text-lg font-semibold text-charcoal mb-3">Estado y Prioridad</h3>
@@ -110,6 +131,30 @@
               </div>
             </div>
 
+            <!-- Timeline -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <h3 class="text-lg font-semibold text-charcoal mb-3">Cronología</h3>
+              <div class="space-y-2">
+                <div class="flex items-center space-x-3">
+                  <PhCalendar :size="20" class="text-slate-500" />
+                  <div>
+                    <p class="text-sm text-slate-600">Creado</p>
+                    <p class="text-slate-800">{{ formatDate(request.createdAt) }}</p>
+                  </div>
+                </div>
+                <div v-if="request.updatedAt" class="flex items-center space-x-3">
+                  <PhClock :size="20" class="text-slate-500" />
+                  <div>
+                    <p class="text-sm text-slate-600">Última actualización</p>
+                    <p class="text-slate-800">{{ formatDate(request.updatedAt) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Details Tab Content -->
+          <div v-if="activeTab === 'details'" class="space-y-6">
             <!-- Request Details -->
             <div class="bg-gray-50 rounded-lg p-4">
               <h3 class="text-lg font-semibold text-charcoal mb-3">Detalles de la Solicitud</h3>
@@ -131,27 +176,6 @@
               </div>
             </div>
 
-            <!-- Timeline -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <h3 class="text-lg font-semibold text-charcoal mb-3">Cronología</h3>
-              <div class="space-y-2">
-                <div class="flex items-center space-x-3">
-                  <PhCalendar :size="20" class="text-slate-500" />
-                  <div>
-                    <p class="text-sm text-slate-600">Creado</p>
-                    <p class="text-slate-800">{{ formatDate(request.createdAt) }}</p>
-                  </div>
-                </div>
-                <div v-if="request.updatedAt" class="flex items-center space-x-3">
-                  <PhClock :size="20" class="text-slate-500" />
-                  <div>
-                    <p class="text-sm text-slate-600">Última actualización</p>
-                    <p class="text-slate-800">{{ formatDate(request.updatedAt) }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- Tags -->
             <div v-if="request.tags && request.tags.length > 0" class="bg-gray-50 rounded-lg p-4">
               <h3 class="text-lg font-semibold text-charcoal mb-3">Etiquetas</h3>
@@ -166,21 +190,9 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Middle Left - Notification Panel -->
-        <div class="w-1/4 p-6 overflow-y-auto border border-gray-200 rounded-lg bg-white">
-          <NotificationPanel
-            :request-id="request.id"
-            :client-email="request.email"
-            :client-phone="request.phone"
-            @notification-sent="handleNotificationSent"
-          />
-        </div>
-
-        <!-- Middle Right - Quotation Management -->
-        <div class="w-1/4 p-6 overflow-y-auto border border-gray-200 rounded-lg bg-white">
-          <div class="space-y-6">
+          <!-- Quotations Tab Content -->
+          <div v-if="activeTab === 'quotations'" class="space-y-6">
             <!-- Quotations Header -->
             <div class="flex items-center justify-between">
               <h3 class="text-xl font-bold text-charcoal">Cotizaciones</h3>
@@ -226,7 +238,7 @@
                           placeholder="Descripción del servicio o producto"
                         ></textarea>
                       </div>
-                      <div class="grid grid-cols-3 gap-3">
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label class="block text-sm font-medium text-slate-600 mb-1">Cantidad</label>
                           <input
@@ -390,17 +402,29 @@
               </div>
             </div>
           </div>
+
+          <!-- Notifications Tab Content -->
+          <div v-if="activeTab === 'notifications'">
+            <NotificationPanel
+              :request-id="request.id"
+              :client-email="request.email"
+              :client-phone="request.phone"
+              @notification-sent="handleNotificationSent"
+            />
+          </div>
         </div>
 
-        <!-- Right Side - Events Timeline -->
-        <div class="w-1/4 p-6 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+        <!-- Right Events -->
+        <div class="col-span-3 bg-gray-50 border-l border-gray-200 p-4">
+          <h3 class="text-lg font-semibold text-charcoal mb-4">Eventos</h3>
           <EventsComponent
             :entity-id="`request_information_${request.id}`"
           />
         </div>
       </div>
     </div>
-   </Layout>
+    </div>
+  </Layout>
 </template>
 
 <script setup lang="ts">
@@ -428,6 +452,7 @@ const requestId = route.params.id as string
 
 // State
 const showCreateForm = ref(false)
+const activeTab = ref('overview')
 const newQuotation = ref<CreateQuotationRequest>({
   requestInformationId: requestId,
   details: [
@@ -463,6 +488,14 @@ const breadcrumbs = computed(() => [
   { label: 'Solicitudes', path: '/requests' },
   { label: 'Detalles de Solicitud', path: `/requests/${requestId}` }
 ])
+
+const tabs = [
+  { key: 'overview', label: 'Resumen' },
+  { key: 'details', label: 'Detalles' },
+  { key: 'activities', label: 'Actividades' },
+  { key: 'quotations', label: 'Cotizaciones' },
+  { key: 'notifications', label: 'Notificaciones' }
+]
 
 // Methods
 const goBack = () => {
@@ -612,6 +645,10 @@ const handleNotificationSent = (notification: any) => {
   // You can add additional logic here if needed
 }
 
+const handleTabChange = (tabKey: string) => {
+  activeTab.value = tabKey
+}
+
 const retryLoad = async () => {
   try {
     await requestsStore.fetchRequestById(requestId)
@@ -650,5 +687,19 @@ onMounted(async () => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Layout styles */
+.grid {
+  min-height: calc(100vh - 12rem);
+}
+
+.col-span-7 {
+  max-height: calc(100vh - 12rem);
+}
+
+.col-span-3 {
+  max-height: calc(100vh - 12rem);
+  overflow-y: auto;
 }
 </style>
