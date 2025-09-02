@@ -130,25 +130,19 @@
       </div>
     </div>
 
-    <!-- Request Details Modal -->
-    <RequestDetailsModal
-      v-if="selectedRequest"
-      :is-open="showRequestModal"
-      :request="selectedRequest"
-      @close="closeRequestModal"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { PhPlus, PhX } from '@phosphor-icons/vue'
 import KanbanColumn from './KanbanColumn.vue'
-import RequestDetailsModal from './RequestDetailsModal.vue'
 import { useRequestsStore } from '../../stores/requests'
 import { useStatusStore } from '../../stores/status'
 import type { RequestStatus, StatusDefinition, RequestInformation } from '../../types'
 
+const router = useRouter()
 const requestsStore = useRequestsStore()
 const statusStore = useStatusStore()
 
@@ -159,10 +153,6 @@ const newStatus = ref({
   color: '#3B82F6',
   isDefault: false
 })
-
-// Modal state
-const showRequestModal = ref(false)
-const selectedRequest = ref<RequestInformation | null>(null)
 
 // Drag and drop state
 const draggedColumnIndex = ref<number | null>(null)
@@ -285,13 +275,7 @@ const handleBoardDrop = (event: DragEvent) => {
 }
 
 const handleOpenDetails = (request: RequestInformation) => {
-  selectedRequest.value = request
-  showRequestModal.value = true
-}
-
-const closeRequestModal = () => {
-  showRequestModal.value = false
-  selectedRequest.value = null
+  router.push(`/requests/${request.id}`)
 }
 
 onMounted(async () => {
