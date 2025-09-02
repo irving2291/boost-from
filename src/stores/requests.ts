@@ -240,6 +240,59 @@ export const useRequestsStore = defineStore('requests', () => {
     }
   }
 
+  const fetchRequestById = async (requestId: string) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const authStore = useAuthStore()
+
+      // Since there's no single request endpoint, we'll use the list endpoint
+      // and filter for the specific request ID
+      const response = await axios.get(`${API_ENDPOINTS.CRM.REQUESTS}?limit=999`, {
+        headers: createAuthHeaders(authStore.token || undefined)
+      })
+
+      const data = response.data
+
+      // Handle API response - adjust based on actual API structure
+      let requestsData: RequestInformation[]
+      if (Array.isArray(data)) {
+        requestsData = data
+      } else if (data.data && Array.isArray(data.data)) {
+        requestsData = data.data
+      } else {
+        throw new Error('Unexpected API response format for requests list')
+      }
+
+      // Find the specific request by ID
+      const requestData = requestsData.find(r => r.id === requestId)
+      if (!requestData) {
+        throw new Error('Request not found')
+      }
+
+      // Update the requests array with this single request
+      const existingIndex = requests.value.findIndex(r => r.id === requestId)
+      if (existingIndex >= 0) {
+        requests.value[existingIndex] = requestData
+      } else {
+        requests.value.push(requestData)
+      }
+
+      return requestData
+    } catch (err: any) {
+      console.error('Error fetching request by ID from API:', err)
+      if (axios.isAxiosError(err) && err.response) {
+        error.value = err.response.data?.message || `HTTP ${err.response.status}: ${err.response.statusText}`
+      } else {
+        error.value = err instanceof Error ? err.message : 'Error fetching request by ID'
+      }
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const updateRequestStatus = async (requestId: string, newStatusCode: string) => {
     try {
       const authStore = useAuthStore()
@@ -312,6 +365,7 @@ export const useRequestsStore = defineStore('requests', () => {
     // Actions
     fetchRequests,
     fetchRequestsByAssigneeAndPeriod,
+    fetchRequestById,
     updateRequestStatus,
     addRequest,
     deleteRequest

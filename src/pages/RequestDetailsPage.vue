@@ -1,10 +1,43 @@
 <template>
   <Layout>
-    <!-- Breadcrumbs -->
-    <Breadcrumbs :breadcrumbs="breadcrumbs" />
+    <!-- Loading State -->
+    <div v-if="requestsStore.loading" class="flex items-center justify-center h-64">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-blue mx-auto mb-4"></div>
+        <p class="text-slate-600">Cargando detalles de la solicitud...</p>
+      </div>
+    </div>
 
-    <!-- Page Header -->
-    <div class="flex items-center justify-between mb-6">
+    <!-- Error State -->
+    <div v-else-if="requestsStore.error" class="flex items-center justify-center h-64">
+      <div class="text-center">
+        <PhWarning :size="48" class="text-red-500 mx-auto mb-4" />
+        <h2 class="text-xl font-semibold text-slate-800 mb-2">Error al cargar la solicitud</h2>
+        <p class="text-slate-600 mb-4">{{ requestsStore.error }}</p>
+        <div class="flex space-x-3">
+          <button
+            @click="retryLoad"
+            class="px-4 py-2 bg-accent-blue text-white rounded-md hover:bg-blue-600"
+          >
+            Reintentar
+          </button>
+          <button
+            @click="goBack"
+            class="px-4 py-2 text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50"
+          >
+            Volver a Solicitudes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div v-else-if="request && request.id">
+      <!-- Breadcrumbs -->
+      <Breadcrumbs :breadcrumbs="breadcrumbs" />
+
+      <!-- Page Header -->
+      <div class="flex items-center justify-between mb-6">
       <div class="flex items-center space-x-4">
         <button
           @click="goBack"
@@ -366,7 +399,8 @@
           />
         </div>
       </div>
-  </Layout>
+    </div>
+   </Layout>
 </template>
 
 <script setup lang="ts">
@@ -374,7 +408,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   PhArrowLeft, PhUser, PhEnvelope, PhPhone, PhBuilding, PhCalendar, PhClock,
-  PhPlus, PhTrash, PhFileText
+  PhPlus, PhTrash, PhFileText, PhWarning
 } from '@phosphor-icons/vue'
 import type { RequestInformation, Quotation, QuotationDetail, CreateQuotationRequest } from '../types'
 import { useQuotationsStore } from '../stores/quotations'
@@ -578,10 +612,24 @@ const handleNotificationSent = (notification: any) => {
   // You can add additional logic here if needed
 }
 
+const retryLoad = async () => {
+  try {
+    await requestsStore.fetchRequestById(requestId)
+    await quotationsStore.fetchQuotationByRequestId(requestId)
+  } catch (error) {
+    console.error('Error retrying to load request details:', error)
+  }
+}
+
 // Load data on mount
 onMounted(async () => {
-  await requestsStore.fetchRequests()
-  await quotationsStore.fetchQuotationByRequestId(requestId)
+  try {
+    await requestsStore.fetchRequestById(requestId)
+    await quotationsStore.fetchQuotationByRequestId(requestId)
+  } catch (error) {
+    console.error('Error loading request details:', error)
+    // Error will be handled by the template's error state
+  }
 })
 </script>
 
