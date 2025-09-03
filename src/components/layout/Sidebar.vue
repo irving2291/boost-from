@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhUserCheck, PhAddressBook, PhMegaphone } from '@phosphor-icons/vue'
+import { PhHouse, PhKanban, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhUserCheck, PhAddressBook, PhMegaphone } from '@phosphor-icons/vue'
 import { cn } from '../../utils'
 import { useRequestsStore } from '../../stores/requests'
 import { useAuthStore } from '../../stores/auth'
 import { useOrganizationsStore } from '../../stores/organizations'
 import { useSidebarStore } from '../../stores/sidebar'
 import { REQUEST_STATUSES } from '../../utils/constants'
-import { getStatusLabel } from '../../utils/i18n-helpers'
 import NavItem from './NavItem.vue'
 import type { NavigationItem } from '../../types/navigation'
 
@@ -88,12 +87,6 @@ const allNavigationItems = computed((): NavigationItem[] => [
         label: t('navigation.chat'),
         icon: PhChatCircle,
         path: '/chat',
-      },
-      {
-        id: 'analytics',
-        label: t('navigation.analytics'),
-        icon: PhChartLine,
-        path: '/analytics',
       },
       {
         id: 'landing-pages',

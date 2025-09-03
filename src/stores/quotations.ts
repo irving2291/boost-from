@@ -95,20 +95,32 @@ export const useQuotationsStore = defineStore('quotations', () => {
     }
   }
 
-  const fetchQuotationByRequestId = async (requestId: string): Promise<Quotation | null> => {
+  const fetchQuotationByRequestId = async (requestId: string): Promise<Quotation[] | null> => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
       const response = await fetch(`${API_ENDPOINTS.CRM.QUOTATIONS}/request-information/${requestId}`, {
         headers: createAuthHeaders(authStore.token || undefined)
       })
-      
+
       await handleApiError(response)
-      const quotation = await response.json()
-      
-      return quotation
+      const data = await response.json()
+
+      // Handle both single quotation and array of quotations
+      let quotationsArray: Quotation[]
+      if (Array.isArray(data)) {
+        quotationsArray = data
+      } else {
+        quotationsArray = [data]
+      }
+
+      // Remove existing quotations for this request and add the new ones
+      quotations.value = quotations.value.filter(q => q.requestInformationId !== requestId)
+      quotations.value.push(...quotationsArray)
+
+      return quotationsArray
     } catch (err) {
       console.error('Error fetching quotation by request ID:', err)
       error.value = err instanceof Error ? err.message : 'Error fetching quotation'

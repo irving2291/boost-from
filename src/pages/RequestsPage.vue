@@ -21,7 +21,7 @@
             />
           </div>
           
-          <!-- View Toggle -->
+          <!-- View Tabs -->
           <div class="flex bg-gray-100 rounded-lg p-0">
             <button
               @click="viewMode = 'kanban'"
@@ -50,6 +50,20 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
               </svg>
               {{ t('requests.listView') }}
+            </button>
+            <button
+              @click="viewMode = 'analytics'"
+              :class="[
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none',
+                viewMode === 'analytics'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              ]"
+            >
+              <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+              Analíticas
             </button>
           </div>
           
@@ -84,7 +98,7 @@
         </div>
         
         <!-- List View -->
-        <div v-else class="h-full bg-white rounded-lg shadow-sm border flex flex-col">
+        <div v-else-if="viewMode === 'list'" class="h-full bg-white rounded-lg shadow-sm border flex flex-col">
           <div class="p-6 border-b border-gray-200 flex-shrink-0">
             <div class="flex justify-between items-center">
               <h2 class="text-lg font-semibold text-gray-900">{{ t('requests.listTitle') }}</h2>
@@ -179,6 +193,99 @@
             </div>
           </div>
         </div>
+
+        <!-- Analytics View -->
+        <div v-else class="h-full bg-white rounded-lg shadow-sm border flex flex-col">
+          <div class="p-6 border-b border-gray-200 flex-shrink-0">
+            <div class="flex justify-between items-center">
+              <h2 class="text-lg font-semibold text-gray-900">Analíticas de Requests</h2>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-auto p-6">
+            <!-- Analytics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              <div class="bg-white p-6 rounded-lg border border-slate-300">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-slate-600">Conversión Mensual</h3>
+                  <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  </svg>
+                </div>
+                <p class="text-2xl font-bold text-slate-900">
+                  {{ conversionRate.toFixed(1) }}%
+                </p>
+                <p class="text-xs text-green-600 mt-1">
+                  Tasa de conversión actual
+                </p>
+              </div>
+
+              <div class="bg-white p-6 rounded-lg border border-slate-300">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-slate-600">Requests Activos</h3>
+                  <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                  </svg>
+                </div>
+                <p class="text-2xl font-bold text-blue-600">
+                  {{ activeRequests }}
+                </p>
+                <p class="text-xs text-blue-600 mt-1">
+                  Requests activos
+                </p>
+              </div>
+
+              <div class="bg-white p-6 rounded-lg border border-slate-300">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-slate-600">Revenue</h3>
+                  <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                  </svg>
+                </div>
+                <p class="text-2xl font-bold text-green-600">
+                  ${{ totalRevenue.toLocaleString() }}
+                </p>
+                <p class="text-xs text-green-600 mt-1">
+                  Revenue total
+                </p>
+              </div>
+
+              <div class="bg-white p-6 rounded-lg border border-slate-300">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-slate-600">Tiempo Promedio</h3>
+                  <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                  </svg>
+                </div>
+                <p class="text-2xl font-bold text-slate-900">
+                  {{ avgTimeToClose }} días
+                </p>
+                <p class="text-xs text-slate-500 mt-1">
+                  Tiempo promedio de cierre
+                </p>
+              </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="bg-white p-6 rounded-lg border border-slate-300">
+              <h3 class="text-lg font-semibold text-slate-900 mb-4">Métricas de Rendimiento</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-blue-600">{{ totalRequests }}</p>
+                  <p class="text-sm text-slate-600">Total Requests</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-green-600">{{ completedRequests }}</p>
+                  <p class="text-sm text-slate-600">Requests Completados</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-purple-600">{{ pendingRequests }}</p>
+                  <p class="text-sm text-slate-600">Requests Pendientes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Request Information Form Modal -->
@@ -209,7 +316,7 @@ const statusStore = useStatusStore()
 const assigneesStore = useAssigneesStore()
 
 // Reactive data
-const viewMode = ref<'kanban' | 'list'>('kanban')
+const viewMode = ref<'kanban' | 'list' | 'analytics'>('kanban')
 const dateRange = ref<{ from?: string; to?: string }>({})
 const currentAssignee = ref<Assignee | null>(null)
 const showFormModal = ref(false)
@@ -223,6 +330,72 @@ const filteredRequests = computed(() => {
   // Use the same data source as kanban - no additional client-side filtering
   // Date range and assignee filters are already applied at the store level
   return requests.value
+})
+
+// Analytics computed properties
+const totalRequests = computed(() => requestsStore.requests.length)
+
+const activeRequests = computed(() => {
+  return requestsStore.requests.filter(r =>
+    !['won', 'lost', 'closed'].includes(r.status.code)
+  ).length
+})
+
+const conversionRate = computed(() => {
+  const total = requestsStore.requests.length
+  const won = requestsStore.requests.filter(r => r.status.code === 'won').length
+  return total > 0 ? (won / total) * 100 : 0
+})
+
+const totalRevenue = computed(() => {
+  return requestsStore.requests
+    .filter(r => r.status.code === 'won' && r.amount)
+    .reduce((sum, r) => sum + (r.amount || 0), 0)
+})
+
+const avgTimeToClose = computed(() => {
+  const closedRequests = requestsStore.requests.filter(r =>
+    ['won', 'lost'].includes(r.status.code)
+  )
+
+  if (closedRequests.length === 0) return 0
+
+  const totalDays = closedRequests.reduce((sum, request) => {
+    const created = new Date(request.createdAt)
+    const updated = request.updatedAt ? new Date(request.updatedAt) : new Date()
+    const days = Math.ceil((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+    return sum + days
+  }, 0)
+
+  return Math.round(totalDays / closedRequests.length)
+})
+
+const completedRequests = computed(() => {
+  const statusStore = useStatusStore()
+  const completedStatuses = statusStore.statuses.filter(s =>
+    s.name.toLowerCase().includes('ganado') ||
+    s.name.toLowerCase().includes('won') ||
+    s.name.toLowerCase().includes('cerrado') ||
+    s.name.toLowerCase().includes('completed')
+  )
+
+  return requestsStore.requests.filter(request =>
+    completedStatuses.some(status => status.name === request.status.code)
+  ).length
+})
+
+const pendingRequests = computed(() => {
+  const statusStore = useStatusStore()
+  const pendingStatuses = statusStore.statuses.filter(s =>
+    s.name.toLowerCase().includes('nuevo') ||
+    s.name.toLowerCase().includes('new') ||
+    s.name.toLowerCase().includes('pendiente') ||
+    s.name.toLowerCase().includes('pending')
+  )
+
+  return requestsStore.requests.filter(request =>
+    pendingStatuses.some(status => status.name === request.status.code)
+  ).length
 })
 
 // Methods
@@ -334,7 +507,7 @@ const saveViewPreference = () => {
 // Load view preference from localStorage
 const loadViewPreference = () => {
   const saved = localStorage.getItem('requests_view_mode')
-  if (saved === 'kanban' || saved === 'list') {
+  if (saved === 'kanban' || saved === 'list' || saved === 'analytics') {
     viewMode.value = saved
   }
 }

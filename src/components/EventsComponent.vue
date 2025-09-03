@@ -5,7 +5,6 @@ import { useOrganizationsStore } from '../stores/organizations'
 import {
   PhPlus,
   PhPencil,
-  PhArrowRight,
   PhUser,
   PhChat,
   PhCheck,
@@ -64,7 +63,7 @@ const getEventDescription = (event: Event) => {
   if (event.payload.channel) {
     return `Evento en canal ${event.payload.channel}`
   }
-  return `${getEventType(event.eventType)} por ${event.actor.username}`
+  return `${getEventType(event.eventType)}`
 }
 
 const getEventType = (type: string) => {
@@ -86,7 +85,10 @@ const getEventType = (type: string) => {
   if (type === 'request_information_status.cancelled') {
     return 'Cancelado'
   }
-  return 'Otro'
+  if (type === 'request_information_status.changed') {
+    return 'Estado Cambiado'
+  }
+  return type
 }
 
 const getEventIcon = (type: string) => {
@@ -179,23 +181,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Custom scrollbar if needed */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-</style>

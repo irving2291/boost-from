@@ -71,7 +71,7 @@
     </div>
 
     <!-- New Layout: Tabs Left, Content Center, Events Right -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden min-h-[calc(100vh-12rem)]">
+    <div class="bg-white rounded-lg border border-gray-200 min-h-[calc(100vh-12rem)]">
       <div class="grid grid-cols-12 h-full">
         <!-- Left Tabs -->
         <div class="col-span-2 bg-gray-50 border-r border-gray-200 p-4">
@@ -420,7 +420,7 @@
         </div>
 
         <!-- Right Events -->
-        <div class="col-span-3 bg-gray-50 border-l border-gray-200 p-4">
+        <div class="col-span-3 bg-gray-50 p-4 border-l border-gray-200">
           <h3 class="text-lg font-semibold text-charcoal mb-4">Eventos</h3>
           <EventsComponent
             :entity-id="`request_information_${request.id}`"
@@ -675,37 +675,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-/* Custom scrollbar for modal content */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Layout styles */
-.grid {
-  min-height: calc(100vh - 12rem);
-}
-
-.col-span-7 {
-  max-height: calc(100vh - 12rem);
-}
-
-.col-span-3 {
-  max-height: calc(100vh - 12rem);
-  overflow-y: auto;
-}
-</style>
