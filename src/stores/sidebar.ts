@@ -2,47 +2,25 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useSidebarStore = defineStore('sidebar', () => {
-  const isCollapsed = ref(false)
-  
-  // Cargar preferencia desde localStorage al inicializar
-  const loadPreference = () => {
-    const saved = localStorage.getItem('sidebar-collapsed')
-    if (saved !== null) {
-      isCollapsed.value = JSON.parse(saved)
-    }
-  }
-  
-  // Guardar preferencia en localStorage
-  const savePreference = () => {
-    localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed.value))
-  }
-  
-  // Toggle del estado del sidebar
+  const isCollapsed = ref(true) // Always collapsed
+
+  // No need for localStorage since it's always collapsed
   const toggle = () => {
-    isCollapsed.value = !isCollapsed.value
-    savePreference()
+    // Do nothing - sidebar is always collapsed
   }
-  
-  // Colapsar sidebar
+
   const collapse = () => {
-    isCollapsed.value = true
-    savePreference()
+    // Already collapsed
   }
-  
-  // Expandir sidebar
+
   const expand = () => {
-    isCollapsed.value = false
-    savePreference()
+    // Do nothing - sidebar is always collapsed
   }
-  
-  // Inicializar cargando la preferencia
-  loadPreference()
-  
+
   return {
     isCollapsed,
     toggle,
     collapse,
-    expand,
-    loadPreference
+    expand
   }
 })

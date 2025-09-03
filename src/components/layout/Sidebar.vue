@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhList, PhUserCheck, PhAddressBook, PhMegaphone } from '@phosphor-icons/vue'
-import Badge from '../ui/Badge.vue'
-import LanguageSelector from '../ui/LanguageSelector.vue'
+import { PhHouse, PhKanban, PhChartLine, PhGear, PhUsersThree, PhShield, PhBuildings, PhUsers, PhKey, PhChatCircle, PhFileText, PhUserCheck, PhAddressBook, PhMegaphone } from '@phosphor-icons/vue'
 import { cn } from '../../utils'
 import { useRequestsStore } from '../../stores/requests'
 import { useAuthStore } from '../../stores/auth'
@@ -193,14 +191,14 @@ onMounted(() => {
   <aside
     :class="cn(
       'text-white h-screen flex flex-col transition-all duration-300 ease-in-out',
-      'border-r border-slate-500 shadow-inner overflow-hidden overflow-x-hidden',
+      'shadow-inner z-[9999]',
       sidebarStore.isCollapsed ? 'w-16' : 'w-64',
       className
     )"
     :style="{ background: 'linear-gradient(to bottom, #4A5568, #2D3748)' }"
   >
     <!-- Logo/Brand - Fixed Header -->
-    <div class="p-6 border-b border-slate-300 border-opacity-30 flex-shrink-0 overflow-x-hidden">
+    <!-- <div class="p-6 flex-shrink-0">
       <div class="flex items-center space-x-3">
         <div class="flex-shrink-0">
           <img
@@ -229,12 +227,12 @@ onMounted(() => {
           </p>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Scrollable Content Area -->
-    <div class="flex-1 overflow-y-auto overflow-x-hidden">
+    <div class="flex-1">
       <!-- Navigation -->
-      <nav class="px-4 py-6 space-y-1 overflow-x-hidden">
+      <nav class="px-4 py-6 space-y-1">
         <template v-for="item in navigationItems" :key="item.id">
           <NavItem
             :item="item"
@@ -244,74 +242,6 @@ onMounted(() => {
           />
         </template>
       </nav>
-
-      <!-- Status Summary -->
-      <div
-        v-if="summary && !sidebarStore.isCollapsed"
-        class="p-4 border-t border-slate-300 border-opacity-30 transition-opacity duration-300"
-      >
-        <h3 class="text-sm font-medium text-slate-100 mb-3">
-          {{ t('common.requestStatus') }}
-        </h3>
-        <div class="space-y-2">
-          <div
-            v-for="status in REQUEST_STATUSES"
-            :key="status"
-            v-show="(summary.byStatus[status] || 0) > 0"
-            class="flex items-center justify-between text-xs"
-          >
-            <span class="text-slate-200">
-              {{ getStatusLabel(status) }}
-            </span>
-            <span class="text-white font-medium">
-              {{ summary.byStatus[status] || 0 }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Conversion Rate -->
-        <div v-if="summary.conversionRate > 0" class="mt-3 pt-3 border-t border-slate-300 border-opacity-30">
-          <div class="flex items-center justify-between text-xs">
-            <span class="text-slate-200">
-              {{ t('common.conversionRate') }}
-            </span>
-            <span class="text-green-300 font-medium">
-              {{ (summary.conversionRate * 100).toFixed(1) }}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Language Selector -->
-      <div v-if="!sidebarStore.isCollapsed" class="p-4 border-t border-slate-300 border-opacity-30">
-        <h3 class="text-sm font-medium text-slate-100 mb-3">
-          {{ t('common.language') }}
-        </h3>
-        <LanguageSelector />
-      </div>
-    </div>
-
-    <!-- Footer with Copyright and Toggle Button - Fixed at Bottom -->
-    <div class="p-4 border-t border-slate-300 border-opacity-30 flex-shrink-0 overflow-x-hidden">
-      <div class="flex items-center justify-between">
-        <!-- Copyright -->
-        <div v-if="!sidebarStore.isCollapsed" class="flex-1">
-          <p class="text-xs text-slate-200">
-            {{ t('common.copyright') }}
-          </p>
-        </div>
-
-        <!-- Toggle Button -->
-        <div class="flex-shrink-0">
-          <button
-            @click="sidebarStore.toggle"
-            class="p-2 rounded-lg hover:bg-slate-600 transition-colors text-white"
-            :title="sidebarStore.isCollapsed ? t('common.expandSidebar') : t('common.collapseSidebar')"
-          >
-            <PhList :size="16" />
-          </button>
-        </div>
-      </div>
     </div>
   </aside>
 </template>

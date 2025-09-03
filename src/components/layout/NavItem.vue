@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Disclosure,
@@ -47,6 +47,34 @@ const handleNavigation = (path?: string) => {
 
 const handleChildNavigation = (path: string) => {
   emit('navigate', path)
+}
+
+const tooltipPosition = ref('50%')
+
+const updateTooltipPosition = (element: HTMLElement) => {
+  if (!element) return
+
+  const rect = element.getBoundingClientRect()
+  const tooltipHeight = 200 // estimated height
+  const viewportHeight = window.innerHeight
+
+  // If tooltip would go above viewport
+  if (rect.top - tooltipHeight / 2 < 0) {
+    tooltipPosition.value = '10px'
+  }
+  // If tooltip would go below viewport
+  else if (rect.bottom + tooltipHeight / 2 > viewportHeight) {
+    tooltipPosition.value = `${viewportHeight - tooltipHeight - 10}px`
+  }
+  // Default center position
+  else {
+    tooltipPosition.value = '50%'
+  }
+}
+
+const handleMouseEnter = (event: MouseEvent) => {
+  const target = event.currentTarget as HTMLElement
+  updateTooltipPosition(target)
 }
 </script>
 
@@ -110,6 +138,7 @@ const handleChildNavigation = (path: string) => {
   <div
     v-else
     class="relative group"
+    @mouseenter="handleMouseEnter"
   >
     <Disclosure v-slot="{ open }" :default-open="isActive && !isCollapsed">
       <DisclosureButton
@@ -158,17 +187,29 @@ const handleChildNavigation = (path: string) => {
     <!-- Tooltip for collapsed parent items -->
     <div
       v-if="isCollapsed"
-      class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap"
-      style="top: 50%; transform: translateY(-50%)"
+      class="absolute bg-gray-700 left-full ml-2 px-3 py-2 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200"
+      :style="{
+        top: tooltipPosition,
+        transform: tooltipPosition === '50%' ? 'translateY(-50%)' : 'none',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+        whiteSpace: 'nowrap'
+      }"
     >
-      <div class="font-medium">{{ item.label }}</div>
-      <div v-if="item.children" class="mt-1 space-y-1">
+      <div class="font-medium text-slate-100 mb-2">{{ item.label }}</div>
+      <div v-if="item.children" class="space-y-1">
         <div
           v-for="child in item.children"
           :key="child.id"
-          class="text-xs text-gray-300 cursor-pointer hover:text-white"
+          :class="[
+            'flex items-center text-xs cursor-pointer px-2 py-1 rounded transition-colors',
+            child.path && (props.currentPath === child.path || route.path === child.path || route.path.startsWith(child.path + '/'))
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-300 hover:text-white hover:bg-slate-700'
+          ]"
           @click="handleChildNavigation(child.path || '')"
         >
+          <component :is="child.icon" class="h-4 w-4 mr-2 shrink-0" />
           {{ child.label }}
         </div>
       </div>

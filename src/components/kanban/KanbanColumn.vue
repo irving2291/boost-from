@@ -2,7 +2,7 @@
   <div class="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-200 min-h-[600px]">
     <!-- Column Header - Sticky and Draggable -->
     <div
-      class="sticky top-0 z-20 flex items-center justify-between p-4 bg-slate-300 cursor-move"
+      class="flex items-center justify-between p-4 bg-slate-300 cursor-move"
       draggable="true"
       @dragstart="handleHeaderDragStart"
       @dragend="handleHeaderDragEnd"
