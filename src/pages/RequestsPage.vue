@@ -88,31 +88,6 @@
           <div class="p-6 border-b border-gray-200 flex-shrink-0">
             <div class="flex justify-between items-center">
               <h2 class="text-lg font-semibold text-gray-900">{{ t('requests.listTitle') }}</h2>
-              <div class="flex items-center space-x-4">
-                <!-- Search -->
-                <div class="relative">
-                  <input
-                    v-model="searchQuery"
-                    type="text"
-                    :placeholder="t('requests.searchPlaceholder')"
-                    class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                  </svg>
-                </div>
-                
-                <!-- Status Filter -->
-                <select
-                  v-model="statusFilter"
-                  class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">{{ t('requests.allStatuses') }}</option>
-                  <option v-for="status in availableStatuses" :key="status.id" :value="status.name">
-                    {{ status.label }}
-                  </option>
-                </select>
-              </div>
             </div>
           </div>
           
@@ -199,7 +174,7 @@
               </svg>
               <h3 class="mt-2 text-sm font-medium text-gray-900">{{ t('requests.noRequests') }}</h3>
               <p class="mt-1 text-sm text-gray-500">
-                {{ searchQuery || statusFilter || dateRange.from || dateRange.to ? t('requests.noRequestsFiltered') : t('requests.noRequestsYet') }}
+                {{ dateRange.from || dateRange.to ? t('requests.noRequestsFiltered') : t('requests.noRequestsYet') }}
               </p>
             </div>
           </div>
@@ -235,8 +210,6 @@ const assigneesStore = useAssigneesStore()
 
 // Reactive data
 const viewMode = ref<'kanban' | 'list'>('kanban')
-const searchQuery = ref('')
-const statusFilter = ref('')
 const dateRange = ref<{ from?: string; to?: string }>({})
 const currentAssignee = ref<Assignee | null>(null)
 const showFormModal = ref(false)
@@ -247,44 +220,9 @@ const requests = computed(() => requestsStore.requests)
 const availableStatuses = computed(() => statusStore.statuses)
 
 const filteredRequests = computed(() => {
-  let filtered = requests.value
-
-  // Apply search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(request =>
-      request.fistName.toLowerCase().includes(query) ||
-      request.lastName.toLowerCase().includes(query) ||
-      request.email.toLowerCase().includes(query) ||
-      request.phone.toLowerCase().includes(query) ||
-      (request.company && request.company.toLowerCase().includes(query))
-    )
-  }
-
-  // Apply status filter
-  if (statusFilter.value) {
-    filtered = filtered.filter(request => request.status.name === statusFilter.value)
-  }
-
-  // Apply date range filter
-  if (dateRange.value.from || dateRange.value.to) {
-    filtered = filtered.filter(request => {
-      const requestDate = new Date(request.createdAt)
-      const fromDate = dateRange.value.from ? new Date(dateRange.value.from) : null
-      const toDate = dateRange.value.to ? new Date(dateRange.value.to) : null
-
-      if (fromDate && toDate) {
-        return requestDate >= fromDate && requestDate <= toDate
-      } else if (fromDate) {
-        return requestDate >= fromDate
-      } else if (toDate) {
-        return requestDate <= toDate
-      }
-      return true
-    })
-  }
-
-  return filtered
+  // Use the same data source as kanban - no additional client-side filtering
+  // Date range and assignee filters are already applied at the store level
+  return requests.value
 })
 
 // Methods
