@@ -35,7 +35,7 @@ const fetchEvents = async () => {
     }
     const response = await eventsService.getEvents(props.entityId, tenantId, { perPage: 10 })
 
-    events.value = response['items']
+    events.value = response.items
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al cargar eventos'
     console.error('Error fetching events:', err)
@@ -127,57 +127,29 @@ onMounted(() => {
     <div v-else-if="events.length === 0" class="text-center py-8">
       <p class="text-slate-500">No hay eventos para esta entidad</p>
     </div>
-    <div v-else class="relative">
-      <!-- Timeline line -->
-      <div class="absolute left-5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-blue-300"></div>
-
-      <div class="space-y-8">
-        <div
-          v-for="(event, index) in events"
-          :key="event.pk"
-          class="relative flex items-start space-x-2"
-        >
-          <!-- Timeline icon -->
-          <div class="relative z-20 flex-shrink-0">
-            <div class="w-8 h-8 bg-blue-500 rounded-full border-4 border-white shadow-md flex items-center justify-center">
-              <component
-                :is="getEventIcon(event.eventType)"
-                :size="16"
-                class="text-white"
-              />
-            </div>
-            <!-- Connecting line for all but last item -->
-            <div
-              v-if="index < events.length - 1"
-              class="absolute top-6 left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-blue-300 z-10"
-            ></div>
-          </div>
-
-          <!-- Event content -->
-          <div class="flex-1 min-w-0 pb-8">
-            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-sm">
-              <h4 class="text-sm font-semibold text-gray-800">{{ getEventDescription(event) }}</h4>
-              <div class="flex items-center space-x-4 text-xs text-slate-500">
-                <span class="flex items-center space-x-1">
-                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                  </svg>
-                  <span>{{ formatDate(event.ts) }}</span>
-                </span>
-                <span v-if="event.actor" class="flex items-center space-x-1">
-                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                  </svg>
-                  <span>{{ event.actor.username }}</span>
-                </span>
-              </div>
-              <div v-if="event.payload.note" class="mt-3 text-sm text-slate-600">
-                {{ event.payload.note }}
-              </div>
-            </div>
-          </div>
+    <ol class="relative border-s border-gray-200 dark:border-gray-700">
+      <li
+        v-for="(event, index) in events"
+        :key="event.pk"
+        :class="['ms-6', index < events.length - 1 ? 'mb-10' : '']"
+      >
+        <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -start-3 ring-8 ring-white dark:ring-gray-900 dark:bg-blue-900">
+          <component
+            :is="getEventIcon(event.eventType)"
+            :size="16"
+            class="text-blue-800 dark:text-blue-300"
+          />
+        </span>
+        <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ getEventType(event.eventType) }}
+          <span v-if="index === 0" class="bg-blue-100 text-blue-800 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-blue-900 dark:text-blue-300 ms-3">Latest</span>
+        </h3>
+        <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">{{ formatDate(event.ts) }}</time>
+        <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">{{ getEventDescription(event) }}</p>
+        <div v-if="event.actor" class="text-sm text-gray-600 dark:text-gray-400">
+          Por: {{ event.actor.username }}
         </div>
-      </div>
-    </div>
+      </li>
+    </ol>
   </div>
 </template>

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from '../stores/auth'
+import { useOrganizationsStore } from '../stores/organizations'
 
 export interface Event {
   pk: string
@@ -30,7 +31,8 @@ export interface EventsResponse {
 export class EventsService {
   private getAuthHeaders() {
     const authStore = useAuthStore()
-    return createAuthHeaders(authStore.token, authStore.currentOrganization?.id)
+    const organizationsStore = useOrganizationsStore()
+    return createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
   }
 
   async getEvents(entityId: string, tenantId: string, params: { page?: number; perPage?: number } = {}): Promise<EventsResponse> {
