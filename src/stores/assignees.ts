@@ -141,7 +141,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       const authStore = useAuthStore()
       const organizationsStore = useOrganizationsStore()
 
-      const response = await axios.get(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules`, {
+      const response = await axios.get(`${API_ENDPOINTS.CRM.REQUESTS_RULES}`, {
         headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
 
@@ -194,7 +194,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       const authStore = useAuthStore()
       const organizationsStore = useOrganizationsStore()
 
-      const response = await axios.post(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules`, rule, {
+      const response = await axios.post(API_ENDPOINTS.CRM.REQUESTS_RULES, rule, {
         headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
 
@@ -213,7 +213,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       const authStore = useAuthStore()
       const organizationsStore = useOrganizationsStore()
 
-      const response = await axios.patch(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules/${ruleId}`, updates, {
+      const response = await axios.patch(`${API_ENDPOINTS.CRM.REQUESTS_RULES}/${ruleId}`, updates, {
         headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
 
@@ -237,7 +237,7 @@ export const useAssigneesStore = defineStore('assignees', () => {
       const authStore = useAuthStore()
       const organizationsStore = useOrganizationsStore()
 
-      await axios.delete(`${API_ENDPOINTS.CRM.REQUESTS}/assignment-rules/${ruleId}`, {
+      await axios.delete(`${API_ENDPOINTS.CRM.REQUESTS_RULES}/${ruleId}`, {
         headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
 

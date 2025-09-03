@@ -46,14 +46,14 @@ export class NotesService {
   }
 
   async updateNote(noteId: string, noteData: UpdateNoteRequest): Promise<Note> {
-    const response = await axios.put(`${API_ENDPOINTS.CRM.REQUESTS}/notes/${noteId}`, noteData, {
+    const response = await axios.put(`${API_ENDPOINTS.CRM.REQUESTS_NOTES}/${noteId}`, noteData, {
       headers: this.getAuthHeaders()
     })
     return response.data
   }
 
   async deleteNote(noteId: string): Promise<void> {
-    await axios.delete(`${API_ENDPOINTS.CRM.REQUESTS}/notes/${noteId}`, {
+    await axios.delete(`${API_ENDPOINTS.CRM.REQUESTS_NOTES}/${noteId}`, {
       headers: this.getAuthHeaders()
     })
   }

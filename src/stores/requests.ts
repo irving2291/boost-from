@@ -196,7 +196,7 @@ export const useRequestsStore = defineStore('requests', () => {
       const authStore = useAuthStore()
 
       // Build URL for assignee and period endpoint
-      let url = `${API_ENDPOINTS.CRM.REQUESTS}/assignee/${assigneeId}/period`
+      let url = `${API_ENDPOINTS.CRM.REQUESTS_ASSIGNEE}/${assigneeId}/period`
       const params = new URLSearchParams()
 
       params.append('limit', '999')
