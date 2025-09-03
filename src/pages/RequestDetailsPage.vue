@@ -189,6 +189,11 @@
                 </span>
               </div>
             </div>
+
+            <!-- Notes -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <NotesComponent :request-id="request.id" />
+            </div>
           </div>
 
           <!-- Quotations Tab Content -->
@@ -440,6 +445,7 @@ import { useRequestsStore } from '../stores/requests'
 import Layout from '../components/layout/Layout.vue'
 import NotificationPanel from '../components/notifications/NotificationPanel.vue'
 import EventsComponent from '../components/EventsComponent.vue'
+import NotesComponent from '../components/NotesComponent.vue'
 import Breadcrumbs from '../components/ui/Breadcrumbs.vue'
 
 const router = useRouter()
