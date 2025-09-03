@@ -187,6 +187,9 @@ import {
   PhBell, PhPlus, PhPaperPlaneTilt, PhEnvelope, PhDeviceMobile, PhWhatsappLogo,
   PhBellSlash
 } from '@phosphor-icons/vue'
+import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../../utils/api'
+import { useAuthStore } from '../../stores/auth'
+import { useOrganizationsStore } from '../../stores/organizations'
 
 interface NotificationForm {
   title: string
@@ -232,27 +235,27 @@ const notificationForm = ref<NotificationForm>({
   scheduledTime: ''
 })
 
-// Notification types
+// Notification types - Always available for activations
 const notificationTypes = [
   {
     value: 'email',
     label: 'Email',
     icon: PhEnvelope,
-    available: !!props.clientEmail
+    available: true
   },
   {
     value: 'sms',
     label: 'SMS',
     icon: PhDeviceMobile,
-    available: !!props.clientPhone
+    available: true
   },
   {
     value: 'whatsapp',
     label: 'WhatsApp',
     icon: PhWhatsappLogo,
-    available: !!props.clientPhone
+    available: true
   }
-].filter(type => type.available)
+]
 
 // Computed
 const today = computed(() => {
@@ -282,52 +285,57 @@ const handleSendNotification = async () => {
   loading.value = true
 
   try {
+    const authStore = useAuthStore()
+    const organizationsStore = useOrganizationsStore()
     const notificationData = {
       requestId: props.requestId,
       title: notificationForm.value.title,
       message: notificationForm.value.message,
       types: selectedTypes.value,
       priority: notificationForm.value.priority,
-      scheduledFor: notificationForm.value.scheduleForLater 
-        ? `${notificationForm.value.scheduledDate}T${notificationForm.value.scheduledTime}:00`
+      scheduledFor: notificationForm.value.scheduleForLater
+        ? `${notificationForm.value.scheduledDate}T${notificationForm.value.scheduledTime}:00Z`
         : null,
       recipients: {
-        email: props.clientEmail,
-        phone: props.clientPhone
+        email: props.clientEmail || undefined,
+        phone: props.clientPhone || undefined
       }
     }
 
-    // TODO: Replace with actual API call
-    console.log('Sending notification:', notificationData)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    const response = await fetch(API_ENDPOINTS.CRM.NOTIFICATIONS, {
+      method: 'POST',
+      headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
+      body: JSON.stringify(notificationData)
+    })
+
+    await handleApiError(response)
+    const result = await response.json()
 
     // Add to recent notifications
     const newNotification: NotificationHistory = {
-      id: Date.now().toString(),
+      id: result.id || Date.now().toString(),
       title: notificationForm.value.title,
       message: notificationForm.value.message,
       types: [...selectedTypes.value],
       status: notificationForm.value.scheduleForLater ? 'scheduled' : 'sent',
-      createdAt: new Date().toISOString()
+      createdAt: result.createdAt || new Date().toISOString()
     }
 
     recentNotifications.value.unshift(newNotification)
-    
+
     // Keep only last 5 notifications
     if (recentNotifications.value.length > 5) {
       recentNotifications.value = recentNotifications.value.slice(0, 5)
     }
 
-    emit('notificationSent', notificationData)
-    
+    emit('notificationSent', result)
+
     // Reset form
     resetForm()
     showForm.value = false
 
-    alert(notificationForm.value.scheduleForLater 
-      ? 'Notificación programada exitosamente' 
+    alert(notificationForm.value.scheduleForLater
+      ? 'Notificación programada exitosamente'
       : 'Notificación enviada exitosamente'
     )
 
@@ -366,28 +374,27 @@ const formatDate = (dateString: string) => {
   })
 }
 
-// Load recent notifications from localStorage
-const loadRecentNotifications = () => {
-  const stored = localStorage.getItem(`notifications_${props.requestId}`)
-  if (stored) {
-    try {
-      recentNotifications.value = JSON.parse(stored)
-    } catch (error) {
-      console.error('Error loading notifications:', error)
+// Load recent notifications from API
+const loadRecentNotifications = async () => {
+  try {
+    const authStore = useAuthStore()
+    const organizationsStore = useOrganizationsStore()
+    const response = await fetch(`${API_ENDPOINTS.CRM.NOTIFICATIONS}?requestId=${props.requestId}&limit=5`, {
+      headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      recentNotifications.value = Array.isArray(data) ? data : data.data || []
     }
+  } catch (error) {
+    console.error('Error loading notifications:', error)
+    // Fallback to empty array if API fails
+    recentNotifications.value = []
   }
 }
 
-// Save recent notifications to localStorage
-const saveRecentNotifications = () => {
-  localStorage.setItem(`notifications_${props.requestId}`, JSON.stringify(recentNotifications.value))
-}
-
-// Watch for changes in recent notifications and save to localStorage
-import { watch } from 'vue'
-watch(recentNotifications, saveRecentNotifications, { deep: true })
-
-onMounted(() => {
-  loadRecentNotifications()
+onMounted(async () => {
+  await loadRecentNotifications()
 })
 </script>

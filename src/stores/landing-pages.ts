@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { LandingPage, LandingPageFormSubmission, ContactFormConfig } from '../types/landing-pages'
 import { API_ENDPOINTS, createAuthHeaders, handleApiError } from '../utils/api'
 import { useAuthStore } from './auth'
+import { useOrganizationsStore } from './organizations'
 
 export const useLandingPagesStore = defineStore('landingPages', () => {
   // State
@@ -33,22 +34,23 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
   const fetchLandingPages = async (published?: boolean) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
       let url = `${API_ENDPOINTS.CRM.LANDING_PAGES}`
-      
+
       if (published !== undefined) {
         url += `?published=${published}`
       }
-      
+
       const response = await fetch(url, {
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
-      
+
       await handleApiError(response)
       const data = await response.json()
-      
+
       if (Array.isArray(data)) {
         landingPages.value = data
       } else if (data.data && Array.isArray(data.data)) {
@@ -71,18 +73,19 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
   const createLandingPage = async (pageData: Omit<LandingPage, 'id' | 'createdAt' | 'updatedAt'>) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
       const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}`, {
         method: 'POST',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify(pageData)
       })
-      
+
       await handleApiError(response)
       const newPage = await response.json()
-      
+
       landingPages.value.push(newPage)
       return newPage
     } catch (err) {
@@ -97,23 +100,24 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
   const updateLandingPage = async (id: string, updates: Partial<LandingPage>) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
       const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}/${id}`, {
         method: 'PUT',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id),
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id),
         body: JSON.stringify(updates)
       })
-      
+
       await handleApiError(response)
       const updatedPage = await response.json()
-      
+
       const index = landingPages.value.findIndex(page => page.id === id)
       if (index !== -1) {
         landingPages.value[index] = updatedPage
       }
-      
+
       return updatedPage
     } catch (err) {
       console.error('Error updating landing page:', err)
@@ -127,16 +131,17 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
   const deleteLandingPage = async (id: string) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
       const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}/${id}`, {
         method: 'DELETE',
-        headers: createAuthHeaders(authStore.token || undefined, authStore.currentOrganization?.id)
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
       })
-      
+
       await handleApiError(response)
-      
+
       const index = landingPages.value.findIndex(page => page.id === id)
       if (index !== -1) {
         landingPages.value.splice(index, 1)
@@ -197,6 +202,30 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
     currentLandingPage.value = page
   }
 
+  const fetchLandingPageById = async (id: string): Promise<LandingPage | null> => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const authStore = useAuthStore()
+      const organizationsStore = useOrganizationsStore()
+      const response = await fetch(`${API_ENDPOINTS.CRM.LANDING_PAGES}/${id}`, {
+        headers: createAuthHeaders(authStore.token || undefined, organizationsStore.currentOrganization?.id)
+      })
+
+      await handleApiError(response)
+      const data = await response.json()
+
+      return data as LandingPage
+    } catch (err) {
+      console.error('Error fetching landing page by ID:', err)
+      error.value = err instanceof Error ? err.message : 'Error loading landing page'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const fetchLandingPageBySlug = async (slug: string): Promise<LandingPage | null> => {
     loading.value = true
     error.value = null
@@ -239,6 +268,7 @@ export const useLandingPagesStore = defineStore('landingPages', () => {
 
     // Actions
     fetchLandingPages,
+    fetchLandingPageById,
     fetchLandingPageBySlug,
     createLandingPage,
     updateLandingPage,

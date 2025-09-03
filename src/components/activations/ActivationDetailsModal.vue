@@ -162,8 +162,8 @@
         <div class="w-1/2 p-6 overflow-y-auto">
           <NotificationPanel
             :request-id="activation.id"
-            :client-email="'cliente@ejemplo.com'"
-            :client-phone="'+593999999999'"
+            :client-email="undefined"
+            :client-phone="undefined"
             @notification-sent="handleNotificationSent"
           />
         </div>

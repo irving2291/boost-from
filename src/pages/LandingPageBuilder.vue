@@ -569,12 +569,11 @@ watch(showPreview, (newValue: boolean) => {
 // Lifecycle
 onMounted(async () => {
   const pageId = route.params.id as string
-  
+
   if (pageId) {
     isEditing.value = true
-    await landingPagesStore.fetchLandingPages()
-    const page = landingPagesStore.landingPages.find((p: any) => p.id === pageId)
-    
+    const page = await landingPagesStore.fetchLandingPageById(pageId)
+
     if (page) {
       form.value = {
         title: page.title,
