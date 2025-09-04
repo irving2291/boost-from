@@ -109,42 +109,43 @@
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50 sticky top-0">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contacto
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Responsable
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Fecha Creación
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Última Actualización
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
+                <!-- Existing Request Rows -->
                 <tr v-for="request in filteredRequests" :key="request.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-900">
                       {{ request.fistName }} {{ request.lastName }}
                     </div>
-                    <div class="text-sm text-gray-500">{{ request.company || 'Sin empresa' }}</div>
+                    <div class="text-xs text-gray-500">{{ request.company || 'Sin empresa' }}</div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <div class="text-sm text-gray-900">{{ request.email }}</div>
-                    <div class="text-sm text-gray-500">{{ request.phone }}</div>
+                    <div class="text-xs text-gray-500">{{ request.phone }}</div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <span
                       :class="[
                         'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
@@ -154,29 +155,117 @@
                       {{ request.status.name }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     {{ request.assignedTo || 'Sin asignar' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                     {{ formatDate(request.createdAt) }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                     {{ request.updatedAt ? formatDate(request.updatedAt) : '-' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">
                     <button
                       @click="viewRequestDetails(request)"
-                      class="text-blue-600 hover:text-blue-900 mr-3"
+                      class="text-blue-600 hover:text-blue-900 mr-3 text-xs"
                     >
                       Ver
                     </button>
                     <button
                       @click="editRequest(request)"
-                      class="text-gray-600 hover:text-gray-900"
+                      class="text-gray-600 hover:text-gray-900 text-xs"
                     >
                       Editar
                     </button>
                   </td>
+                </tr>
+
+                <!-- Inline Form Row (appears at bottom) -->
+                <tr v-if="showInlineForm" class="bg-blue-50 border-blue-200">
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <div class="flex space-x-1">
+                      <input
+                        v-model="inlineFormData.fistName"
+                        type="text"
+                        placeholder="Nombre *"
+                        class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                      <input
+                        v-model="inlineFormData.lastName"
+                        type="text"
+                        placeholder="Apellido *"
+                        class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <input
+                      v-model="inlineFormData.email"
+                      type="email"
+                      placeholder="Email *"
+                      class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      required
+                    />
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                      Nuevo
+                    </span>
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <AssigneeSelector
+                      v-model="inlineAssignee"
+                      @assignee-changed="handleInlineAssigneeChanged"
+                      class="text-xs"
+                      placeholder="Seleccionar responsable..."
+                    />
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatDate(new Date().toISOString()) }}
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                    -
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                    <button
+                      @click="submitInlineForm"
+                      :disabled="isSubmittingInline"
+                      class="text-green-600 hover:text-green-900 mr-2 disabled:opacity-50 text-xs"
+                    >
+                      <svg v-if="isSubmittingInline" class="animate-spin -ml-1 mr-2 h-3 w-3 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {{ isSubmittingInline ? 'Creando...' : 'Guardar' }}
+                    </button>
+                    <button
+                      @click="hideInlineFormRow"
+                      class="text-red-600 hover:text-red-900 text-xs"
+                    >
+                      Cancelar
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Add New Row Button (in client column) -->
+                <tr v-if="!showInlineForm" class="border-t-2 border-dotted border-gray-300 hover:bg-gray-50">
+                  <td class="px-4 py-3 text-sm text-gray-600">
+                    <button
+                      @click="showInlineFormRow"
+                      class="inline-flex items-center text-gray-600 hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                      <PhPlus :size="14" class="mr-2" />
+                      <span class="border-b border-dotted border-gray-400 pb-1">Agregar Nuevo Lead</span>
+                    </button>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-gray-400">-</td>
+                  <td class="px-4 py-3 text-sm text-gray-400">-</td>
+                  <td class="px-4 py-3 text-sm text-gray-400">-</td>
+                  <td class="px-4 py-3 text-sm text-gray-400">-</td>
+                  <td class="px-4 py-3 text-sm text-gray-400">-</td>
+                  <td class="px-4 py-3 text-sm text-gray-400">-</td>
                 </tr>
               </tbody>
             </table>
@@ -190,6 +279,15 @@
               <p class="mt-1 text-sm text-gray-500">
                 {{ dateRange.from || dateRange.to ? t('requests.noRequestsFiltered') : t('requests.noRequestsYet') }}
               </p>
+              <div class="mt-6">
+                <button
+                  @click="showInlineFormRow"
+                  class="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  <PhPlus :size="14" class="mr-2" />
+                  <span class="border-b border-dotted border-gray-400 pb-1">Agregar Nuevo Lead</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -298,7 +396,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Layout from '../components/layout/Layout.vue'
 import KanbanBoard from '../components/kanban/KanbanBoard.vue'
@@ -320,6 +418,17 @@ const viewMode = ref<'kanban' | 'list' | 'analytics'>('kanban')
 const dateRange = ref<{ from?: string; to?: string }>({})
 const currentAssignee = ref<Assignee | null>(null)
 const showFormModal = ref(false)
+const showInlineForm = ref(false)
+const isSubmittingInline = ref(false)
+const inlineAssignee = ref<Assignee | null>(null)
+
+// Inline form data
+const inlineFormData = reactive({
+  fistName: '',
+  lastName: '',
+  email: '',
+  assignedTo: undefined as string | undefined
+})
 
 // Computed properties
 const loading = computed(() => requestsStore.loading)
@@ -491,6 +600,81 @@ const handleAssigneeLoaded = async (assignee: Assignee | null) => {
 const handleAssigneeChanged = async (assignee: Assignee | null) => {
   currentAssignee.value = assignee
   await loadRequestsForAssignee(assignee)
+}
+
+// Inline form methods
+const showInlineFormRow = () => {
+  showInlineForm.value = true
+  // Start with empty assignee for inline form
+  inlineAssignee.value = null
+  inlineFormData.assignedTo = undefined
+}
+
+const hideInlineFormRow = () => {
+  showInlineForm.value = false
+  resetInlineForm()
+}
+
+const resetInlineForm = () => {
+  inlineFormData.fistName = ''
+  inlineFormData.lastName = ''
+  inlineFormData.email = ''
+  inlineFormData.assignedTo = undefined
+  inlineAssignee.value = null
+}
+
+const handleInlineAssigneeChanged = (assignee: Assignee | null) => {
+  inlineAssignee.value = assignee
+  inlineFormData.assignedTo = assignee?.id
+}
+
+const submitInlineForm = async () => {
+  // Validation
+  if (!inlineFormData.fistName || !inlineFormData.lastName || !inlineFormData.email) {
+    alert('Por favor complete todos los campos obligatorios: nombre, apellido y email')
+    return
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(inlineFormData.email)) {
+    alert('Por favor ingrese un email válido')
+    return
+  }
+
+  isSubmittingInline.value = true
+
+  try {
+    // Create request data
+    const requestData: Omit<RequestInformation, 'id' | 'createdAt' | 'updatedAt'> = {
+      fistName: inlineFormData.fistName,
+      lastName: inlineFormData.lastName,
+      email: inlineFormData.email,
+      phone: '', // Empty phone as it's not required in inline form
+      assignedTo: inlineFormData.assignedTo,
+      status: {
+        id: 'new-status-id',
+        code: 'NEW',
+        name: 'Nuevo',
+        organization: 'default',
+        default: true
+      }
+    }
+
+    // Add the request
+    await requestsStore.addRequest(requestData)
+
+    // Hide form and reset
+    hideInlineFormRow()
+
+    // Refresh the requests data
+    await loadRequestsForAssignee(currentAssignee.value)
+  } catch (error) {
+    console.error('Error creating request:', error)
+    alert('Error al crear el lead. Por favor intente nuevamente.')
+  } finally {
+    isSubmittingInline.value = false
+  }
 }
 
 // Lifecycle
